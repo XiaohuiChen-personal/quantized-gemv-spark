@@ -162,14 +162,15 @@ class Analysis:
                     f"(proposal: {PROPOSAL_REF:.0f} GB/s; rated {RATED:.0f} GB/s).", ""]
 
     def correctness(self):
-        d = self.df[(self.df.check_pass != "n/a") & (self.df.kernel != "cublaslt")]
+        d = self.df[self.df.check_pass.isin(["pass", "FAIL"]) & (self.df.kernel != "cublaslt")]
         n = len(d)
-        ok = ((d.check_pass == "pass") & (d.check_rad_pass == "pass") & (d.recheck_pass == "pass")).sum()
+        ok = ((d.check_pass == "pass") & (d.check_rad_pass == "pass") & (d.recheck_pass == "pass")
+              & (d.bitwise_same == 1)).sum()
         notbit = d[d.bitwise_same == 0]
         spin_bad = int((self.df.spin_covered == 0).sum())
         self.md += ["## 2. Correctness", "",
-                    f"Checked rows (all executions): {n}; passing every check (Gaussian x, ±1 x, re-check after "
-                    f"timing): **{ok}**. Worst per-element tolerance ratio: {d.check_worst_ratio.max():.3f} "
+                    f"Checked rows of my kernels and cuBLAS GemmEx (all executions): {n}; passing every check "
+                    f"(Gaussian x, ±1 x, re-check after timing, bitwise repeat): **{ok}**. Worst per-element tolerance ratio: {d.check_worst_ratio.max():.3f} "
                     f"(1.0 = at the bound). Largest relative L2 error vs the kernel's own reference: "
                     f"{d.check_rel_l2.max():.2e} (limit 4e-3).",
                     f"Rows whose output after timing differed bitwise from the first run: {len(notbit)}"
@@ -320,8 +321,10 @@ class Analysis:
                 c4 = acc[(acc.matrix == m) & (acc.fmt == "int4")].iloc[0]
                 xr.append(max(abs(srow.rel_int8.iloc[0] / c8.rel_err_cpu - 1), abs(srow.rel_int4.iloc[0] / c4.rel_err_cpu - 1)))
             if xr:
-                self.md += [f"NumPy cross-check: for the {len(xr)} benchmarked matrices, the NumPy relative errors "
-                            f"agree with the C++ CPU-only errors to within {max(xr):.1e} (relative).", ""]
+                agree = ("identical to all 7 significant digits both print" if max(xr) < 5e-7
+                         else f"within {max(xr):.1e} (relative)")
+                self.md += [f"NumPy cross-check: for the {len(xr)} benchmarked matrices, the independent NumPy relative "
+                            f"errors (`scripts/accuracy_sweep.py`) agree with the C++ CPU-only errors: {agree}.", ""]
 
     def h4(self):
         p = os.path.join(self.R, "marlin", "marlin.csv")
@@ -357,7 +360,11 @@ class Analysis:
                     "| --- | --- | --- | --- | --- |"]
         for mode, (a, b, c) in out.items():
             self.md.append(f"| {mode} | {a:.2f}× | {b:.2f}× | {fmt_pct(1 - b / a)} | {c:.2f}× |")
-        self.md.append("")
+        gap = 1 - out["iso"][1] / out["iso"][0]
+        self.md += ["", f"Isolated gap {fmt_pct(gap)}: " + ("above the 10% trigger, so another cause is at work."
+                    if gap > 0.10 else "between the predicted ~4% and the 10% trigger: no evidence of a cause beyond "
+                    "fixed per-launch costs; the 5 MB matrices show that cost clearly." if gap > 0.04 else
+                    "within the predicted ~4%."), ""]
         self.small = out
 
     def timing_modes(self):
@@ -412,7 +419,7 @@ class Analysis:
             rows.append({"matrix": m, "v4 us": t4, "v4 load-only us": tl, "decode cost": fmt_pct(t4 / tl - 1),
                          "v4 GB/s": self.row(m, "v4").gbps, "INT4 read ref GB/s": rd.gbps if rd is not None else float("nan")})
         self.md += ["## 11. INT4 diagnostics (no GPU counters needed)", "",
-                    "`v4 load-only` issues v4's exact loads (weights and scales) with the decode and multiply-adds "
+                    "`v4 load-only` issues v4's exact loads (weights, scales and x) with the decode and multiply-adds "
                     "removed. `decode cost` = t(v4)/t(load-only) − 1: near zero means v4 is limited by memory, "
                     "not by its arithmetic.", "",
                     md_table(pd.DataFrame(rows), {"v4 us": "{:.2f}", "v4 load-only us": "{:.2f}", "v4 GB/s": "{:.1f}",
@@ -518,7 +525,7 @@ class Analysis:
 
     def fig_ladder(self):
         mats = ["gate", "down", "qkv", "z", "out", "k", "lmhead"]
-        fig, ax = plt.subplots(figsize=(7.0, 3.2))
+        fig, ax = plt.subplots(figsize=(7.6, 3.3))
         w = 0.13
         x = np.arange(len(mats))
         for i, k in enumerate(LADDER):
@@ -531,7 +538,7 @@ class Analysis:
             rd = self.row(m, "read", "bf16")
             ax.plot([j - 3 * w, j + 3 * w], [rd.gbps] * 2, color=INK, lw=1.2, zorder=3)
         ax.plot([], [], color=INK, lw=1.2, label="BF16 read ref (same size)")
-        ax.set_xticks(x, [f"{m}\n{self.row(m, 'v2').M}×{self.row(m, 'v2').K}" for m in mats])
+        ax.set_xticks(x, [f"{m}\n{self.row(m, 'v2').M}\n×{self.row(m, 'v2').K}" for m in mats], fontsize=7.5)
         ax.set_ylabel("GB/s on stored bytes (isolated)")
         ax.set_ylim(0, 300)
         ax.legend(ncol=4, fontsize=7.5, loc="upper left", bbox_to_anchor=(0, 1.22))
@@ -592,7 +599,7 @@ class Analysis:
         ax.set_yticks(y, piv.index)
         ax.invert_yaxis()
         ax.set_xlabel("change in isolated time vs frozen v2 (%; positive = slower)")
-        ax.legend(ncol=len(mats), fontsize=7.5, loc="lower right")
+        ax.legend(ncol=len(mats), fontsize=7.5, loc="lower center", bbox_to_anchor=(0.5, 1.0))
         self.save(fig, "fig_ablation.png", "v2 ablation: the frozen v2 with one factor changed at a time; change in "
                   "isolated time on four matrices of different shape.")
 
@@ -609,12 +616,14 @@ class Analysis:
                 ax.plot(d.footprint_L2, d.gbps_iso, color=SLOT[i], marker="o", ms=3.5, label=f"{f} {k}")
             for x, lab in ((4, "planned 4×"), (32, "adopted 32×")):
                 ax.axvline(x, color=INK2, lw=0.8, ls=(0, (4, 3)))
+                ax.text(x * 1.12, 385, lab, fontsize=6.5, color=INK2, va="top")
             ax.set_xscale("log", base=2)
             ax.set_ylim(100, 400)
             ax.set_title(f"{m} ({self.row(m, 'v2').M}×{self.row(m, 'v2').K})")
             ax.set_xlabel("footprint of all copies / L2")
         np.atleast_1d(axes)[0].set_ylabel("isolated GB/s")
-        np.atleast_1d(axes)[-1].legend(fontsize=7, loc="upper right")
+        h, l = np.atleast_1d(axes)[0].get_legend_handles_labels()
+        fig.legend(h, l, fontsize=7, ncol=4, loc="upper center", bbox_to_anchor=(0.5, -0.07))
         self.save(fig, "fig_rotation.png", "Rotation sweep: isolated rate against the total footprint of the rotating "
                   "copies (in units of the 24 MiB L2). Rates fall to a plateau only from about 16 × L2; the planned "
                   "rule (4 × L2) left some data cached. Values above ~273 GB/s are cache hits.")
@@ -638,7 +647,8 @@ class Analysis:
             ax.axhline(100 * thr, color=INK2, lw=0.9, ls=(0, (4, 3)))
             ax.set_xlabel("layer")
             ax.set_ylabel(("INT8" if col == "rel_int8" else "INT4") + " relative error (%)")
-        axes[1].legend(fontsize=6.5, loc="lower right")
+        handles, labels = axes[1].get_legend_handles_labels()
+        fig.legend(handles, labels, fontsize=7, ncol=3, loc="upper center", bbox_to_anchor=(0.5, -0.02))
         self.save(fig, "fig_accuracy_layers.png", "Relative output error (Gaussian x) of every large matrix in all 32 "
                   "layers, INT8 (left) and INT4 (right); dashed: the H3 thresholds (2%, 15%).")
 
@@ -666,7 +676,7 @@ class Analysis:
         ax.scatter(x, t["ceiling at 241 GB/s (tokens/s)"], marker="_", s=600, color=INK, linewidth=1.6, zorder=3,
                    label="byte-count ceiling at 241 GB/s")
         for i, v in enumerate(t["tokens/s (streamed)"]):
-            ax.text(i, v + 1.5, f"{v:.0f}", ha="center", fontsize=7.5)
+            ax.text(i, v - 2.5, f"{v:.0f}", ha="center", va="top", fontsize=8, color=SURFACE, fontweight="bold")
         ax.set_xticks(x, t.format)
         ax.set_ylabel("tokens/s from GEMV time alone")
         ax.legend(fontsize=7.5, loc="upper left")
