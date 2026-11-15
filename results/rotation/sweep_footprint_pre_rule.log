@@ -1,0 +1,103 @@
+# utc=2026-11-15T04:52:36Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=unknown mode=rotation seed=0 profile=warmup20+200ms_iso200_graph200x5 spin_ns=100000
+
+== gate  model.language_model.layers.0.mlp.gate_proj.weight  M=9216 K=2560
+  read     bf16 t256_g768                    x1   iso    164.70 us  286.5 GB/s | cold    164.22 | str    162.84 us  289.8 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x1   iso    165.73 us  284.9 GB/s | cold    165.41 | str    162.94 us  289.7 GB/s | pass
+  read     bf16 t256_g768                    x2   iso    185.70 us  254.1 GB/s | cold    198.16 | str    180.32 us  261.7 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x2   iso    185.18 us  254.9 GB/s | cold    184.42 | str    182.15 us  259.2 GB/s | pass
+  read     bf16 t256_g768                    x4   iso    198.50 us  237.7 GB/s | cold    198.16 | str    188.19 us  250.7 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x4   iso    202.64 us  233.0 GB/s | cold    202.27 | str    191.02 us  247.1 GB/s | pass
+  read     bf16 t256_g768                    x9   iso    198.50 us  237.7 GB/s | cold    198.27 | str    191.46 us  246.5 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x9   iso    202.59 us  233.0 GB/s | cold    203.38 | str    194.56 us  242.6 GB/s | pass
+  read     bf16 t256_g768                    x17  iso    199.52 us  236.5 GB/s | cold    198.98 | str    193.09 us  244.4 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x17  iso    203.65 us  231.8 GB/s | cold    203.30 | str    197.37 us  239.2 GB/s | pass
+  read     bf16 t256_g768                    x34  iso    199.52 us  236.5 GB/s | cold    198.30 | str    194.84 us  242.2 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x34  iso    203.62 us  231.9 GB/s | cold    203.23 | str    198.70 us  237.6 GB/s | pass
+  read     bf16 t256_g768                    x68  iso    198.50 us  237.7 GB/s | cold    198.05 | str    193.95 us  243.3 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x68  iso    203.58 us  231.9 GB/s | cold    202.78 | str    198.50 us  237.8 GB/s | pass
+  read     int4 t256_g768                    x2   iso     22.35 us  544.3 GB/s | cold     22.06 | str     19.19 us  633.9 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x2   iso     23.55 us  517.5 GB/s | cold     24.03 | str     21.79 us  559.3 GB/s | pass
+  read     int4 t256_g768                    x4   iso     52.06 us  233.7 GB/s | cold     51.78 | str     48.28 us  252.0 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x4   iso     54.30 us  224.5 GB/s | cold     53.86 | str     50.76 us  240.1 GB/s | pass
+  read     int4 t256_g768                    x8   iso     52.06 us  233.7 GB/s | cold     52.74 | str     49.10 us  247.7 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x8   iso     55.28 us  220.5 GB/s | cold     55.26 | str     54.30 us  224.5 GB/s | pass
+  read     int4 t256_g768                    x17  iso     53.09 us  229.2 GB/s | cold     52.24 | str     49.69 us  244.8 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x17  iso     56.16 us  217.0 GB/s | cold     56.90 | str     54.73 us  222.7 GB/s | pass
+  read     int4 t256_g768                    x33  iso     53.09 us  229.2 GB/s | cold     53.52 | str     50.00 us  243.3 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x33  iso     57.18 us  213.1 GB/s | cold     57.34 | str     53.96 us  225.9 GB/s | pass
+  read     int4 t256_g768                    x66  iso     53.15 us  228.9 GB/s | cold     53.46 | str     50.12 us  242.7 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x66  iso     57.18 us  213.1 GB/s | cold     56.90 | str     55.14 us  221.0 GB/s | pass
+  read     int4 t256_g768                    x132 iso     54.16 us  224.6 GB/s | cold     53.79 | str     51.03 us  238.4 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x132 iso     57.18 us  213.1 GB/s | cold     57.79 | str     55.78 us  218.5 GB/s | pass
+  read     int4 t256_g768                    x265 iso     53.09 us  229.2 GB/s | cold     53.76 | str     50.30 us  241.8 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x265 iso     57.18 us  213.1 GB/s | cold     56.93 | str     55.37 us  220.1 GB/s | pass
+
+== out  model.language_model.layers.0.linear_attn.out_proj.weight  M=2560 K=4096
+  read     bf16 t256_g768                    x1   iso     22.34 us  938.9 GB/s | cold     21.94 | str     19.31 us 1086.0 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x1   iso     20.32 us 1032.7 GB/s | cold     19.01 | str     17.27 us 1214.9 GB/s | pass
+  read     bf16 t256_g768                    x2   iso     75.62 us  277.3 GB/s | cold     76.29 | str     72.40 us  289.6 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x2   iso     74.59 us  281.3 GB/s | cold     73.44 | str     71.02 us  295.5 GB/s | pass
+  read     bf16 t256_g768                    x5   iso     79.71 us  263.1 GB/s | cold     79.49 | str     78.89 us  265.8 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x5   iso     81.76 us  256.7 GB/s | cold     81.41 | str     79.48 us  264.0 GB/s | pass
+  read     bf16 t256_g768                    x10  iso     89.94 us  233.2 GB/s | cold     88.69 | str     82.86 us  253.1 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x10  iso     92.02 us  228.1 GB/s | cold     91.74 | str     84.54 us  248.2 GB/s | pass
+  read     bf16 t256_g768                    x19  iso     88.93 us  235.8 GB/s | cold     88.53 | str     84.42 us  248.4 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x19  iso     92.00 us  228.1 GB/s | cold     91.68 | str     86.67 us  242.1 GB/s | pass
+  read     bf16 t256_g768                    x38  iso     90.96 us  230.6 GB/s | cold     88.74 | str     85.73 us  244.6 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x38  iso     93.02 us  225.6 GB/s | cold     92.64 | str     88.00 us  238.5 GB/s | pass
+  read     bf16 t256_g768                    x77  iso     90.98 us  230.5 GB/s | cold     89.73 | str     87.10 us  240.8 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x77  iso     93.02 us  225.6 GB/s | cold     92.74 | str     88.96 us  235.9 GB/s | pass
+  read     bf16 t256_g768                    x154 iso     89.95 us  233.1 GB/s | cold     89.47 | str     86.47 us  242.5 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x154 iso     93.02 us  225.6 GB/s | cold     93.60 | str     89.02 us  235.7 GB/s | pass
+  read     int4 t256_g768                    x5   iso     17.42 us  310.3 GB/s | cold     17.92 | str     16.11 us  335.7 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x5   iso     21.31 us  254.3 GB/s | cold     21.23 | str     18.19 us  298.0 GB/s | pass
+  read     int4 t256_g768                    x9   iso     25.34 us  213.3 GB/s | cold     25.36 | str     22.35 us  241.9 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x9   iso     28.30 us  191.5 GB/s | cold     28.48 | str     25.81 us  210.0 GB/s | pass
+  read     int4 t256_g768                    x19  iso     25.44 us  212.5 GB/s | cold     26.16 | str     23.37 us  231.3 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x19  iso     28.51 us  190.1 GB/s | cold     29.31 | str     26.31 us  206.0 GB/s | pass
+  read     int4 t256_g768                    x37  iso     26.26 us  205.9 GB/s | cold     26.26 | str     23.84 us  226.8 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x37  iso     28.66 us  189.1 GB/s | cold     29.15 | str     26.43 us  205.1 GB/s | pass
+  read     int4 t256_g768                    x74  iso     25.44 us  212.5 GB/s | cold     26.11 | str     23.07 us  234.4 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x74  iso     28.51 us  190.1 GB/s | cold     29.07 | str     26.40 us  205.3 GB/s | pass
+  read     int4 t256_g768                    x149 iso     25.44 us  212.5 GB/s | cold     25.18 | str     23.04 us  234.6 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x149 iso     28.51 us  190.1 GB/s | cold     28.26 | str     25.94 us  209.0 GB/s | pass
+  read     int4 t256_g768                    x298 iso     25.49 us  212.1 GB/s | cold     25.18 | str     23.25 us  232.6 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x298 iso     28.51 us  190.1 GB/s | cold     29.26 | str     26.56 us  204.1 GB/s | pass
+  read     int4 t256_g768                    x596 iso     25.44 us  212.5 GB/s | cold     25.15 | str     23.04 us  234.6 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x596 iso     28.51 us  190.1 GB/s | cold     29.28 | str     26.20 us  206.9 GB/s | pass
+
+== k  model.language_model.layers.3.self_attn.k_proj.weight  M=1024 K=2560
+  read     bf16 t256_g768                    x5   iso     18.27 us  286.9 GB/s | cold     17.95 | str     15.19 us  345.0 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x5   iso     18.27 us  287.3 GB/s | cold     18.94 | str     15.99 us  328.3 GB/s | pass
+  read     bf16 t256_g768                    x10  iso     24.42 us  214.7 GB/s | cold     25.06 | str     22.75 us  230.5 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x10  iso     25.52 us  205.7 GB/s | cold     26.34 | str     23.33 us  225.0 GB/s | pass
+  read     bf16 t256_g768                    x19  iso     25.44 us  206.1 GB/s | cold     25.15 | str     23.43 us  223.8 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x19  iso     26.46 us  198.4 GB/s | cold     26.18 | str     23.76 us  221.0 GB/s | pass
+  read     bf16 t256_g768                    x38  iso     24.42 us  214.7 GB/s | cold     24.30 | str     22.52 us  232.9 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x38  iso     26.43 us  198.6 GB/s | cold     26.18 | str     23.54 us  223.0 GB/s | pass
+  read     bf16 t256_g768                    x77  iso     25.44 us  206.1 GB/s | cold     25.12 | str     22.52 us  232.9 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x77  iso     26.46 us  198.4 GB/s | cold     26.18 | str     23.70 us  221.5 GB/s | pass
+  read     bf16 t256_g768                    x154 iso     25.41 us  206.3 GB/s | cold     25.15 | str     22.50 us  233.1 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x154 iso     26.46 us  198.4 GB/s | cold     26.18 | str     23.63 us  222.2 GB/s | pass
+  read     bf16 t256_g768                    x307 iso     25.44 us  206.1 GB/s | cold     25.15 | str     22.58 us  232.2 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x307 iso     26.46 us  198.4 GB/s | cold     26.18 | str     23.73 us  221.3 GB/s | pass
+  read     bf16 t256_g768                    x614 iso     25.44 us  206.1 GB/s | cold     24.34 | str     22.10 us  237.2 GB/s | n/a
+  v2       bf16 t256_r2_u2_xs_pers           x614 iso     26.46 us  198.4 GB/s | cold     26.16 | str     24.32 us  215.9 GB/s | pass
+  read     int4 t256_g768                    x19  iso      8.03 us  168.3 GB/s | cold      6.78 | str      4.40 us  307.4 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x19  iso     10.08 us  134.8 GB/s | cold      8.80 | str      6.54 us  207.8 GB/s | pass
+  read     int4 t256_g768                    x37  iso      9.06 us  149.3 GB/s | cold      8.86 | str      6.79 us  199.0 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x37  iso     11.10 us  122.4 GB/s | cold      9.92 | str      8.35 us  162.7 GB/s | pass
+  read     int4 t256_g768                    x74  iso      9.06 us  149.3 GB/s | cold      8.99 | str      6.90 us  195.9 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x74  iso     11.10 us  122.4 GB/s | cold     10.06 | str      8.65 us  157.1 GB/s | pass
+  read     int4 t256_g768                    x149 iso      9.06 us  149.3 GB/s | cold      8.83 | str      6.79 us  199.0 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x149 iso     11.10 us  122.4 GB/s | cold      9.98 | str      8.59 us  158.2 GB/s | pass
+  read     int4 t256_g768                    x298 iso      9.06 us  149.3 GB/s | cold      8.83 | str      6.83 us  197.9 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x298 iso     11.10 us  122.4 GB/s | cold     10.54 | str      8.64 us  157.2 GB/s | pass
+  read     int4 t256_g768                    x596 iso      9.06 us  149.3 GB/s | cold      8.83 | str      6.85 us  197.4 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x596 iso     11.10 us  122.4 GB/s | cold     11.55 | str      9.43 us  144.2 GB/s | pass
+  read     int4 t256_g768                    x1192 iso      9.06 us  149.3 GB/s | cold      8.83 | str      6.83 us  198.0 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x1192 iso     11.10 us  122.4 GB/s | cold     10.90 | str      8.61 us  157.8 GB/s | pass
+  read     int4 t256_g768                    x2383 iso      9.06 us  149.3 GB/s | cold      8.83 | str      6.77 us  199.6 GB/s | n/a
+  v4       int4 t256_r2_u2_xs_pers           x2383 iso     11.10 us  122.4 GB/s | cold     10.78 | str      8.68 us  156.6 GB/s | pass
+
+results/dev/rotation2.csv: 94 rows in 34 s; every check passed

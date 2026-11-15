@@ -1,0 +1,17 @@
+# Hidden files and folders stay local. Only the ones re-included below are tracked.
+.*
+!.gitignore
+!.gitattributes
+!.clang-format
+!.github/
+
+# Build outputs
+*.o
+build/
+
+# Weight matrices exported from the model (raw BF16, about 1.6 GB in total).
+# The shape manifest next to them is tracked.
+data/*.bin
+
+# Python
+__pycache__/

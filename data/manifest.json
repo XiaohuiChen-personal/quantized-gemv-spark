@@ -1,0 +1,380 @@
+{
+ "model": "Qwen/Qwen3.5-4B",
+ "revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+ "matrices": [
+  {
+   "id": "gate",
+   "tensor": "model.language_model.layers.0.mlp.gate_proj.weight",
+   "M": 9216,
+   "K": 2560,
+   "role": "hyp",
+   "bytes": 47185920,
+   "sha256": "0cd58c188dbcd2507b89005ab99951922af3068cda69c0894a7d2c1f4201f650",
+   "source_file": "model.safetensors-00002-of-00002.safetensors",
+   "quant": {
+    "int8": {
+     "bytes": 23592960,
+     "sha256": "5d80c407dedeb022ad925a3f21335be07c9dda93c0e60187df737ff15d987eb6",
+     "clipped": 0
+    },
+    "int8.scale": {
+     "bytes": 18432,
+     "sha256": "a46861c36cb31d899a201ee897bb8f646c7e515315b6f97cf13e012fcadf25bc",
+     "subnormal": 0,
+     "zero": 0
+    },
+    "int4": {
+     "bytes": 11796480,
+     "sha256": "46924b8f10fa4d54088ccdb26078bdb9c1b588a4f506bc9b0ab8f303b007a69a",
+     "clipped": 0
+    },
+    "int4.scale": {
+     "bytes": 368640,
+     "sha256": "04a3bbb2ce70dcaf2dfbf4de2bf29274b1090ed9824a0e1a8cf7ed6a9c35f8a3",
+     "subnormal": 0,
+     "zero": 0
+    }
+   }
+  },
+  {
+   "id": "up",
+   "tensor": "model.language_model.layers.0.mlp.up_proj.weight",
+   "M": 9216,
+   "K": 2560,
+   "role": "hyp",
+   "bytes": 47185920,
+   "sha256": "15dfff35691a98fe9906aa6e57531092c7d1370bbe5578263aa58e467b724562",
+   "source_file": "model.safetensors-00002-of-00002.safetensors",
+   "quant": {
+    "int8": {
+     "bytes": 23592960,
+     "sha256": "af2cde9316df823b2089ee57d888140643d6709e55f27ae3cc7bb191f309fbee",
+     "clipped": 0
+    },
+    "int8.scale": {
+     "bytes": 18432,
+     "sha256": "3b4fed3e412d450f1b1d0de766b774cc77ccc51884aa85e871cb475f9f4b6280",
+     "subnormal": 0,
+     "zero": 0
+    },
+    "int4": {
+     "bytes": 11796480,
+     "sha256": "0f1b52dbe9e418a105fbf40717b6f7bc03e7be418ca71c9c2f938c82ed76898c",
+     "clipped": 0
+    },
+    "int4.scale": {
+     "bytes": 368640,
+     "sha256": "b892996bc68152a46a9dc88f9b17ba3dff53aff2b884232014d38d12a862bdbb",
+     "subnormal": 0,
+     "zero": 0
+    }
+   }
+  },
+  {
+   "id": "down",
+   "tensor": "model.language_model.layers.0.mlp.down_proj.weight",
+   "M": 2560,
+   "K": 9216,
+   "role": "hyp",
+   "bytes": 47185920,
+   "sha256": "7da9d1bccc5700c05e89305f53bd0dceb3f990a8632d39f86676911725344fe7",
+   "source_file": "model.safetensors-00002-of-00002.safetensors",
+   "quant": {
+    "int8": {
+     "bytes": 23592960,
+     "sha256": "afb638a8b8748dba4ea91971baeecc87187c11cf6448c50c2d5872e5e4201c4e",
+     "clipped": 0
+    },
+    "int8.scale": {
+     "bytes": 5120,
+     "sha256": "0bf37a008f4d9bfee16a7d542b3eac89b9a0c82d0753c55e2aec6774c89ae2b8",
+     "subnormal": 0,
+     "zero": 0
+    },
+    "int4": {
+     "bytes": 11796480,
+     "sha256": "cf43fcd2c220af0f6476ae32354e77c72972b295bfa377f36a022dd9019d520c",
+     "clipped": 0
+    },
+    "int4.scale": {
+     "bytes": 368640,
+     "sha256": "d5e78cf987151d90bbb620fd6d6a3e2a77eab683527aec44581b77ad38437303",
+     "subnormal": 0,
+     "zero": 0
+    }
+   }
+  },
+  {
+   "id": "qkv",
+   "tensor": "model.language_model.layers.0.linear_attn.in_proj_qkv.weight",
+   "M": 8192,
+   "K": 2560,
+   "role": "hyp",
+   "bytes": 41943040,
+   "sha256": "fbbd1e743f0ea4d1ad9f5bd1bf56e35cfd784d71d24d6948dc7629ca83373182",
+   "source_file": "model.safetensors-00002-of-00002.safetensors",
+   "quant": {
+    "int8": {
+     "bytes": 20971520,
+     "sha256": "760343f532106089b52eb5d79707ba7c6d3b6abb50d1ec7cdae2184ff81229b1",
+     "clipped": 0
+    },
+    "int8.scale": {
+     "bytes": 16384,
+     "sha256": "21bf77db1e3011a2b0f34ef008897881ffb312c1d563590470254409e3f13f78",
+     "subnormal": 0,
+     "zero": 0
+    },
+    "int4": {
+     "bytes": 10485760,
+     "sha256": "dc9466e4586ed56a999538d7f7b53be801987318b86df24d5a03db30ae57f41a",
+     "clipped": 0
+    },
+    "int4.scale": {
+     "bytes": 327680,
+     "sha256": "0e8b7be2ab83a3e7bf153303302e95dbd9a2cfdfac069b942d255919f74cf27c",
+     "subnormal": 0,
+     "zero": 0
+    }
+   }
+  },
+  {
+   "id": "z",
+   "tensor": "model.language_model.layers.0.linear_attn.in_proj_z.weight",
+   "M": 4096,
+   "K": 2560,
+   "role": "hyp",
+   "bytes": 20971520,
+   "sha256": "25af60b66fca36f2cce5ae08be73d55ed0ee1d51d41319ce5c79fced8cf908d5",
+   "source_file": "model.safetensors-00002-of-00002.safetensors",
+   "quant": {
+    "int8": {
+     "bytes": 10485760,
+     "sha256": "5444df177081e7b42451c367f02a95d956fb7afdcc1581d82c6477b251931aa9",
+     "clipped": 0
+    },
+    "int8.scale": {
+     "bytes": 8192,
+     "sha256": "82ee790f31b14eed11b299461c5854b56f0db4938e1516dda80b4a50dd988889",
+     "subnormal": 0,
+     "zero": 0
+    },
+    "int4": {
+     "bytes": 5242880,
+     "sha256": "e4fd6ed65c71998055c708f5922d54a89a8aded819e59027e8672d0ad418f4e4",
+     "clipped": 0
+    },
+    "int4.scale": {
+     "bytes": 163840,
+     "sha256": "af6f68add052609541d0571d8b0cf2eafeec0d7d8d68553f3865043e2601f039",
+     "subnormal": 0,
+     "zero": 0
+    }
+   }
+  },
+  {
+   "id": "out",
+   "tensor": "model.language_model.layers.0.linear_attn.out_proj.weight",
+   "M": 2560,
+   "K": 4096,
+   "role": "hyp",
+   "bytes": 20971520,
+   "sha256": "3ab346e604ca4e59e8f0ec9801c785ba48761de4d4df741890e0b740be8df0eb",
+   "source_file": "model.safetensors-00002-of-00002.safetensors",
+   "quant": {
+    "int8": {
+     "bytes": 10485760,
+     "sha256": "9512575bb69a1cdaed41ec9a5e2b9c9e87145e4fb221e63e81b8e32279c3cd4b",
+     "clipped": 0
+    },
+    "int8.scale": {
+     "bytes": 5120,
+     "sha256": "8ff8f0399b3023a039e4b47dd6e672d909579a5443ed2ba184c1bdc48ad6f965",
+     "subnormal": 0,
+     "zero": 0
+    },
+    "int4": {
+     "bytes": 5242880,
+     "sha256": "3c60787e7b7a0f26f7e897f9a565bd92b118e69fdb53e87684f79690047483fc",
+     "clipped": 0
+    },
+    "int4.scale": {
+     "bytes": 163840,
+     "sha256": "5c8eae93dc800293cde604892107561054d231d45bce69c1b766e57c7ebe6e1d",
+     "subnormal": 0,
+     "zero": 0
+    }
+   }
+  },
+  {
+   "id": "q",
+   "tensor": "model.language_model.layers.3.self_attn.q_proj.weight",
+   "M": 8192,
+   "K": 2560,
+   "role": "hyp",
+   "bytes": 41943040,
+   "sha256": "6137c4613cb4b3296363b031a67779d5c96f804acb3686664531b6c63044f4f5",
+   "source_file": "model.safetensors-00002-of-00002.safetensors",
+   "quant": {
+    "int8": {
+     "bytes": 20971520,
+     "sha256": "f5418223fe5bece295fd8da24b8e198e5c3c97decaf6f3becd6ca38dd5802c0d",
+     "clipped": 0
+    },
+    "int8.scale": {
+     "bytes": 16384,
+     "sha256": "0e9d339bb1941d6f9319058827179c32561bf35dff10abd09ae11dc1d0ce0960",
+     "subnormal": 0,
+     "zero": 0
+    },
+    "int4": {
+     "bytes": 10485760,
+     "sha256": "18e7b85625637aa3676ac4a459722d77f809fef324d509184c2ce5b222821265",
+     "clipped": 0
+    },
+    "int4.scale": {
+     "bytes": 327680,
+     "sha256": "f7f08afcf8dd7e36a5cdf74019c16d2873a1863a0cb0509bcc85f33de4aaa280",
+     "subnormal": 0,
+     "zero": 0
+    }
+   }
+  },
+  {
+   "id": "k",
+   "tensor": "model.language_model.layers.3.self_attn.k_proj.weight",
+   "M": 1024,
+   "K": 2560,
+   "role": "model",
+   "bytes": 5242880,
+   "sha256": "3fedff8a1eac07fe4e017967be6d4455eadc97cb09319c2a05ade52204b3ac70",
+   "source_file": "model.safetensors-00002-of-00002.safetensors",
+   "quant": {
+    "int8": {
+     "bytes": 2621440,
+     "sha256": "f6c7a9813134409350caaf93816e3a90d293b40c6cb28ab068edb241d96484bb",
+     "clipped": 0
+    },
+    "int8.scale": {
+     "bytes": 2048,
+     "sha256": "315855e93d1e3078eefd587f0c53d790d945ccba2ec280b9bff411613f6575d2",
+     "subnormal": 0,
+     "zero": 0
+    },
+    "int4": {
+     "bytes": 1310720,
+     "sha256": "88bca375d817dec8df4e3a4202e9f4528041482b5d55bb67d1f1a2ff2abafbf6",
+     "clipped": 0
+    },
+    "int4.scale": {
+     "bytes": 40960,
+     "sha256": "25f8c13cfe819e117bb4a5a26047b9ae681d2d7d7107fc1ad50d361abf124f42",
+     "subnormal": 0,
+     "zero": 0
+    }
+   }
+  },
+  {
+   "id": "v",
+   "tensor": "model.language_model.layers.3.self_attn.v_proj.weight",
+   "M": 1024,
+   "K": 2560,
+   "role": "model",
+   "bytes": 5242880,
+   "sha256": "2e31d5562f86a6bc8347b3074611cd80b83c81ccd798d2b1028db0575aa09045",
+   "source_file": "model.safetensors-00002-of-00002.safetensors",
+   "quant": {
+    "int8": {
+     "bytes": 2621440,
+     "sha256": "3be6cc75fd1692cb04be0f505ae00e7c00654029013651a8c5919258ce5c85bb",
+     "clipped": 0
+    },
+    "int8.scale": {
+     "bytes": 2048,
+     "sha256": "f8a29e1d0df2094314bdc759e3c205de2134c1662a3171ce659bb29f6303cc9f",
+     "subnormal": 0,
+     "zero": 0
+    },
+    "int4": {
+     "bytes": 1310720,
+     "sha256": "bbecd8d51636f34685339d3d36cc5855b7c464dc70dc1073e311de830a714ca6",
+     "clipped": 0
+    },
+    "int4.scale": {
+     "bytes": 40960,
+     "sha256": "e5469457b1b3233edc3c604e8bb2030f456cc10d57f870d44e2f262814bb0feb",
+     "subnormal": 0,
+     "zero": 0
+    }
+   }
+  },
+  {
+   "id": "o",
+   "tensor": "model.language_model.layers.3.self_attn.o_proj.weight",
+   "M": 2560,
+   "K": 4096,
+   "role": "hyp",
+   "bytes": 20971520,
+   "sha256": "f587a093830e5e517d82a0704cb89a7423b264579ad5195fa308dbabdbd6753b",
+   "source_file": "model.safetensors-00002-of-00002.safetensors",
+   "quant": {
+    "int8": {
+     "bytes": 10485760,
+     "sha256": "6216716979421285b7bcb60ef9f154bd70db9fec60a6ff781e68757fe0ccda49",
+     "clipped": 0
+    },
+    "int8.scale": {
+     "bytes": 5120,
+     "sha256": "349711638b6b5bfc1b28bf997630f7d3084d1f3c9c6cef3c18f45f52384d0e6d",
+     "subnormal": 0,
+     "zero": 0
+    },
+    "int4": {
+     "bytes": 5242880,
+     "sha256": "b7ff0bbb0415d182c4e1a22746e75910be5ee1541d7eaafe85066e7679b7432c",
+     "clipped": 0
+    },
+    "int4.scale": {
+     "bytes": 163840,
+     "sha256": "c72e39eee746db65b55e3d0e1bb7923c7f841caa9070793088ed47f7af08d4a3",
+     "subnormal": 0,
+     "zero": 0
+    }
+   }
+  },
+  {
+   "id": "lmhead",
+   "tensor": "model.language_model.embed_tokens.weight",
+   "M": 248320,
+   "K": 2560,
+   "role": "hyp",
+   "bytes": 1271398400,
+   "sha256": "2a68153b498532801ab605bb03fe617c57b3e6a3ba019301fb70ada0c864a2f7",
+   "source_file": "model.safetensors-00001-of-00002.safetensors",
+   "quant": {
+    "int8": {
+     "bytes": 635699200,
+     "sha256": "8730ea031c059cc5d2a28d9c62e64e56097bd344322180ccfd4a99469d42570d",
+     "clipped": 0
+    },
+    "int8.scale": {
+     "bytes": 496640,
+     "sha256": "3d02a492265a6bddb67fb72ef8d457e67abfdf6593fabd69a4bc55f6d806ba9b",
+     "subnormal": 0,
+     "zero": 0
+    },
+    "int4": {
+     "bytes": 317849600,
+     "sha256": "e3bcd810837c67182a690a46d3620607bc5ab5c4fe3f159d408affbb2f98734b",
+     "clipped": 0
+    },
+    "int4.scale": {
+     "bytes": 9932800,
+     "sha256": "b1e8094cc89fcb24352528020ed1d074074e1fb618da073603e5239f4b2f4532",
+     "subnormal": 0,
+     "zero": 0
+    }
+   }
+  }
+ ]
+}
