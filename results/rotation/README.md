@@ -15,7 +15,11 @@ Finding: at the planned 4 × L2 footprint, rates were up to 14% above the DRAM p
 the rated 273 GB/s), so something beyond the 24 MiB L2 (another cache level, or a
 replacement policy that keeps part of older copies) still served data. At R = 5 the
 isolated samples repeat with period 5 — each copy has its own speed — which is the
-bimodal spread first seen in the development run. Every case reached its plateau
-(within about 1%) by 16 × L2, so the rule was changed to **R = max(2, ⌈32 × L2 / stored
+bimodal spread first seen in the development run. By 16 × L2 every case was within a
+few percent of its plateau, so the rule was changed to **R = max(2, ⌈32 × L2 / stored
 bytes⌉)** (805 MB footprint) before tuning. The final runs repeat the sweep with the
-frozen kernels (`sweep_final*`).
+frozen kernels and the final timing (`sweep_final*`); there the excess at 4 × L2 is
+smaller. Even at 32 × L2, about one launch per rotation cycle is ≥ 15% faster than the
+median (in execution 1, 158 of 11 000 isolated samples of the ladder kernels, in 25 of 55
+rows) — one copy evidently still meets a warm cache or a favourable placement. Medians
+ignore these; streamed means include them (≲ 1%).

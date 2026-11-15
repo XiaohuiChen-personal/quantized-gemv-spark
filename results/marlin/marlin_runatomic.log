@@ -1,0 +1,43 @@
+
+=============
+== PyTorch ==
+=============
+
+NVIDIA Release 26.01 (build 256811084)
+PyTorch Version 2.10.0a0+a36e1d3
+Container image Copyright (c) 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2014-2024 Facebook Inc.
+Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
+Copyright (c) 2012-2014 Deepmind Technologies    (Koray Kavukcuoglu)
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2011-2013 NYU                      (Clement Farabet)
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2006      Idiap Research Institute (Samy Bengio)
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+Copyright (c) 2015      Google Inc.
+Copyright (c) 2015      Yangqing Jia
+Copyright (c) 2013-2016 The Caffe contributors
+All rights reserved.
+
+Various files include modifications (c) NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+
+GOVERNING TERMS: The software and materials are governed by the NVIDIA Software License Agreement
+(found at https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-software-license-agreement/)
+and the Product-Specific Terms for NVIDIA AI Products
+(found at https://www.nvidia.com/en-us/agreements/enterprise-software/product-specific-terms-for-ai-products/).
+
+NOTE: CUDA Forward Compatibility mode ENABLED.
+  Using CUDA 13.1 driver version 590.48.01 with kernel driver version 580.159.03.
+  See https://docs.nvidia.com/deploy/cuda-compatibility/ for details.
+
+gate      9216x 2560  marlin iso     66.21 spin     57.18 str     56.11 us   184.1 GB/s  err vs own ref 1.65e-03  vs bf16 0.1132 | torch linear bf16 iso    283.54 us str    276.86 us
+up        9216x 2560  marlin iso     66.02 spin     57.18 str     55.91 us   184.6 GB/s  err vs own ref 1.68e-03  vs bf16 0.1176 | torch linear bf16 iso    284.06 us str    276.96 us
+down      2560x 9216  marlin iso     66.98 spin     58.18 str     54.88 us   182.0 GB/s  err vs own ref 1.68e-03  vs bf16 0.1176 | torch linear bf16 iso    210.43 us str    203.29 us
+qkv       8192x 2560  marlin iso     60.83 spin     52.05 str     49.79 us   178.1 GB/s  err vs own ref 1.63e-03  vs bf16 0.1224 | torch linear bf16 iso    253.90 us str    246.51 us
+z         4096x 2560  marlin iso     38.14 spin     28.50 str     26.42 us   142.1 GB/s  err vs own ref 1.66e-03  vs bf16 0.1212 | torch linear bf16 iso    133.25 us str    125.72 us
+out       2560x 4096  marlin iso     38.30 spin     29.50 str     27.29 us   141.5 GB/s  err vs own ref 1.63e-03  vs bf16 0.1231 | torch linear bf16 iso    133.44 us str    126.13 us
+q         8192x 2560  marlin iso     60.83 spin     52.06 str     50.90 us   178.1 GB/s  err vs own ref 1.67e-03  vs bf16 0.1166 | torch linear bf16 iso    256.42 us str    247.14 us
+k         1024x 2560  marlin iso     23.57 spin     12.13 str      9.23 us    57.7 GB/s  err vs own ref 3.11e-03  vs bf16 0.1190 | torch linear bf16 iso     41.41 us str     34.05 us
+v         1024x 2560  marlin iso     23.74 spin     12.13 str      9.16 us    57.2 GB/s  err vs own ref 2.95e-03  vs bf16 0.1183 | torch linear bf16 iso     41.22 us str     35.21 us
+o         2560x 4096  marlin iso     38.27 spin     29.50 str     26.45 us   141.6 GB/s  err vs own ref 1.64e-03  vs bf16 0.1213 | torch linear bf16 iso    133.47 us str    126.39 us
+lmhead  248320x 2560  marlin iso   1398.93 spin   1389.46 str   1389.91 us   234.7 GB/s  err vs own ref 1.66e-03  vs bf16 0.1286 | torch linear bf16 iso   7323.25 us str   7318.90 us

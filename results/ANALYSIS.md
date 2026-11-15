@@ -94,7 +94,7 @@ Isolated median time (median over executions), streamed (CUDA-graph) time, GB/s 
 
 ## 4. H1 — the bandwidth limit
 
-Rule: on gate, up, down, qkv, q and the LM head, v2 ≥ 193 GB/s (80% of 241) **and** t(v2) ≤ 1.15 × t(cuBLAS GemmEx).
+Rule: on gate, up, down, qkv, q and the LM head, v2 ≥ 193 GB/s (80% of 241 = 192.8; no value falls between the two) **and** t(v2) ≤ 1.15 × t(cuBLAS GemmEx).
 
 | matrix | v2 GB/s | ≥193? | % session ref | t(v2)/t(cuBLAS) | ≤1.15? | t(v2)/t(cuBLASLt best) | held |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -160,41 +160,45 @@ NumPy cross-check: for the 11 benchmarked matrices, the independent NumPy relati
 
 ## 7. H4 — Marlin (stretch)
 
-Rule: t(v4) ≤ 1.5 × t(Marlin) at batch 1 on the H2 matrices (gate, up, down, LM head); all matrices shown. Marlin = vLLM 0.16's `marlin_gemm` on the same BF16 weights quantized by vLLM's own `marlin_quantize` (uint4b8, group 128), timed with the same rules (`results/marlin/`, PyTorch events, `torch.cuda._sleep` before the isolated start event). PyTorch's BF16 `F.linear` is timed alongside.
+Rule: t(v4) ≤ 1.5 × t(Marlin) at batch 1. Judged on the H2 matrices (gate, up, down, LM head); the proposal says "the same matrices", and every matrix shown also passes. Judged on the **streamed** (CUDA-graph) times, the only mode in which both are timed without host-side cost: Marlin is called through Python, so its plain-event time includes ~9 µs of dispatch between the start event and the kernel (e.g. gate: 66 µs plain vs 57 µs with a sleep kernel first vs 55 µs streamed). The verdict is the same in all three modes. Marlin = vLLM 0.16's `marlin_gemm` (uint4b8, group 128) on the same BF16 weights, quantized by vLLM's own `marlin_quantize`; 3 executions in the `vllm-node-qwen35` container (median shown), timed with the harness's three modes (isolated = plain events, spin = sleep kernel before the start event, streamed = CUDA graph) and rotation (`results/marlin/`). Caveats: another process and session, PyTorch events, the container's CUDA 13.1 forward-compatibility runtime, and vLLM's quantizer (scale = max|w| / 7.5, codes −8…7) rather than mine; the atomic-add column is the variant vLLM's log recommends for small N (one execution).
 
-| matrix | t(v4) us | t(Marlin) us | t(v4)/t(Marlin) | ≤1.5? | streamed v4/Marlin | Marlin err vs BF16 | PyTorch F.linear BF16 us |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| gate | 55.65 | 57.15 | 0.974 | yes | 0.967 | 11.32% | 279.4 |
-| up | 54.85 | 57.15 | 0.960 | yes | 0.983 | 11.76% | 278.3 |
-| down | 57.82 | 57.31 | 1.009 | yes | 1.022 | 11.76% | 205.6 |
-| qkv | 49.63 | 52.03 | 0.954 | yes | 0.994 | 12.24% | 248.7 |
-| z | 27.14 | 28.48 | 0.953 | yes | 0.994 | 12.12% | 127.9 |
-| out | 27.17 | 29.50 | 0.921 | yes | 0.928 | 12.31% | 128.8 |
-| q | 49.66 | 52.03 | 0.954 | yes | 0.996 | 11.66% | 249.7 |
-| k | 9.79 | 12.10 | 0.810 | yes | 0.841 | 11.90% | 36.7 |
-| v | 9.79 | 12.10 | 0.810 | yes | 0.844 | 11.83% | 36.7 |
-| o | 27.23 | 28.67 | 0.950 | yes | 0.949 | 12.13% | 129.0 |
-| lmhead | 1378.58 | 1393.47 | 0.989 | yes | 0.985 | 12.86% | 7311.2 |
+| matrix | streamed v4 us | streamed Marlin us | streamed v4/Marlin | ≤1.5? | spin v4/Marlin | plain-event v4/Marlin | streamed Marlin atomic-add us | err v4 / Marlin | PyTorch F.linear BF16 us |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| gate | 54.05 | 55.59 | 0.972 | yes | 0.966 | 0.842 | 56.11 | 11.90% / 11.32% | 283.2 |
+| up | 54.46 | 56.41 | 0.965 | yes | 0.976 | 0.832 | 55.91 | 12.11% / 11.76% | 283.2 |
+| down | 55.83 | 56.41 | 0.990 | yes | 1.011 | 0.871 | 54.88 | 12.12% / 11.76% | 211.1 |
+| qkv | 48.69 | 48.99 | 0.994 | yes | 0.961 | 0.817 | 49.79 | 12.92% / 12.24% | 253.2 |
+| q | 48.70 | 48.92 | 0.995 | yes | 0.961 | 0.816 | 50.90 | 12.22% / 11.66% | 253.4 |
+| z | 25.97 | 25.93 | 1.002 | yes | 0.964 | 0.725 | 26.42 | 12.52% / 12.12% | 132.2 |
+| out | 25.05 | 26.42 | 0.948 | yes | 0.931 | 0.710 | 27.29 | 12.88% / 12.31% | 133.4 |
+| o | 25.09 | 26.42 | 0.950 | yes | 0.932 | 0.712 | 26.45 | 12.56% / 12.13% | 133.4 |
+| k | 8.31 | 9.83 | 0.845 | yes | 0.831 | 0.423 | 9.23 | 12.00% / 11.90% | 41.3 |
+| v | 8.30 | 9.84 | 0.844 | yes | 0.831 | 0.423 | 9.16 | 12.75% / 11.83% | 41.3 |
+| lmhead | 1369.32 | 1390.55 | 0.985 | yes | 0.992 | 0.986 | 1389.91 | 13.64% / 12.86% | 7307.9 |
+
+Matrices of 21 MB and up: streamed v4/Marlin 0.95–1.00 (spin 0.93–1.01; plain events 0.71–0.99, which favours v4 because of Marlin's Python dispatch). All modes pass: yes.
 
 **Verdict H4: CONFIRMED.**
 
 ## 8. Exploratory — do the 21 MB matrices gain less? (CONTEXT.md §6.1)
 
-INT4 speedup over BF16 v2, t(v2)/t(v4), mean per size class. Prediction: ≈ 3.75× (47 MB) vs ≈ 3.6× (21 MB), a gap of about 4%; > 10% would point to another cause.
+INT4 speedup over BF16 v2, t(v2)/t(v4), mean per size class. Prediction: ≈ 3.75× (47 MB) vs ≈ 3.6× (21 MB), a gap of about 4%; > 10% would point to another cause. The `nsys` row uses the Nsight kernel durations of the single profiled pass (no event overhead).
 
-| timing mode | 47 MB (gate, up, down) | 21 MB (z, out, o) | gap 21 vs 47 | 5 MB (k, v) |
+| timing | 47 MB (gate, up, down) | 21 MB (z, out, o) | gap 21 vs 47 | 5 MB (k, v) |
 | --- | --- | --- | --- | --- |
 | iso | 3.64× | 3.41× | 6.3% | 2.58× |
 | stream | 3.64× | 3.51× | 3.7% | 2.82× |
+| nsys | 3.66× | 3.64× | 0.7% | 3.02× |
 
-Isolated gap 6.3%: between the predicted ~4% and the 10% trigger: no evidence of a cause beyond fixed per-launch costs; the 5 MB matrices show that cost clearly.
+Isolated gap 6.3%: above the predicted ~4% but below the 10% trigger; streamed 3.7%, and with Nsight kernel durations only 0.7%. So the excess over the prediction is the event overhead per launch (§9, §15), not a property of the 21 MB matrices' kernels. On the 5 MB matrices the penalty is real but also inflated by events: 3.02× with Nsight durations vs 2.58× isolated; a plain read of 1.3 MB also reaches only ~155 GB/s (§3).
 
 ## 9. Timing modes
 
 Isolated (events around one launch on an idle GPU: the verdict measure), spin (the same with a spin kernel before the start event: a diagnostic, see `results/timing_method/`) and streamed (whole rotation cycles in one CUDA graph) for the ladder kernels, all matrices.
 
-- streamed / isolated: median 0.970, range 0.848–1.003; for kernels under 30 µs: median 0.918; over 1 ms: 1.000. Isolated − streamed: median 3.17 µs (the per-launch cost a back-to-back stream hides).
-- spin − isolated: median +0.34 µs (range -3.54 to +5.55).
+- streamed / isolated: median 0.970, range 0.848–1.003; for kernels under 30 µs: median 0.918; over 1 ms: 1.000. Isolated − streamed: median 3.17 µs; part of that is the event overhead that the streamed mode does not pay per launch (final-run events exceed the Nsight kernel durations by a median 2.4 µs, IQR 1.7–2.9), the rest is launch start-up and tail that back-to-back kernels overlap.
+- spin − isolated: median +0.34 µs (range -3.54 to +5.55); negative mostly for cuBLAS, whose plain-event time includes part of its host-side call path (≤ 1% on the H1/H2 matrices, 1.6–1.8% on the 21 MB ones).
+- Residual caching: 158 of 11000 isolated samples of the ladder kernels in execution 1 are ≥ 15% faster than their row's median, in 25 of 55 rows, about one per rotation cycle (e.g. `down` v2: 11 of 200 with R = 18) — one copy of the rotation evidently still meets a warm cache or a favourable placement. The median ignores them; streamed means include them (≲ 1%).
 
 ## 10. v2 ablation
 
@@ -259,7 +263,7 @@ Range over all 72 configurations (geometric-mean GB/s): v2 228–232; v3 222–2
 
 ## 14. Rotation sweep (why 32 × L2)
 
-`results/rotation/sweep_footprint_pre_rule.csv`: isolated GB/s at footprints of about 4, 16 and ≥ 64 × L2:
+`results/rotation/sweep_footprint_pre_rule.csv` (development kernels and the spin-based timing, before the rule change): isolated GB/s at footprints of about 4, 16 and ≥ 64 × L2:
 
 | matrix | fmt | kernel | ≈4×L2 | ≈16×L2 | plateau (≥64×L2, median) | 4×L2 excess |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -276,7 +280,7 @@ Range over all 72 configurations (geometric-mean GB/s): v2 228–232; v3 222–2
 | k | int4 | read | 149 | 149 | 149 | 0.0% |
 | k | int4 | v4 | 122 | 122 | 122 | 0.0% |
 
-`results/rotation/sweep_final.csv`: isolated GB/s at footprints of about 4, 16 and ≥ 64 × L2:
+`results/rotation/sweep_final.csv` (the frozen kernels and the final timing): isolated GB/s at footprints of about 4, 16 and ≥ 64 × L2:
 
 | matrix | fmt | kernel | ≈4×L2 | ≈16×L2 | plateau (≥64×L2, median) | 4×L2 excess |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -293,25 +297,27 @@ Range over all 72 configurations (geometric-mean GB/s): v2 228–232; v3 222–2
 | k | int4 | read | 154 | 154 | 154 | 0.0% |
 | k | int4 | v4 | 138 | 138 | 134 | 3.5% |
 
-## 15. Nsight Systems cross-check (ground-truth kernel durations)
+Reading: at 4 × L2 the worst excess over the plateau is 13.8% in `sweep_footprint_pre_rule.csv`; 13.5% in `sweep_final.csv` (both on the 21 MB BF16 `out`), so the planned rule would have inflated that matrix with either kernel set. From 16 × L2 on, rates are within a few percent of the plateau. Medians at the adopted 32 × L2 still include about one fast launch per rotation cycle (§9).
 
-One final-set pass under `nsys profile --trace=cuda,nvtx` (`results/nsys/`). Per bench row, the median kernel duration of its 200 isolated launches vs the bench's event median in that same run:
+## 15. Nsight Systems cross-check (kernel durations)
+
+One final-set pass under `nsys profile --trace=cuda,nvtx` (`results/nsys/`): a single, profiled execution, so it is a cross-check rather than a fourth measurement (profiling perturbs a few rows, e.g. `down` v4 ran at 60.9 µs there vs 57.8 µs in the finals). Per bench row, the median kernel duration of its 200 isolated launches vs the bench's event median in that same pass:
 297 rows; bench/nsys ratio: min 1.000, median 1.040, max 1.511 (events add the event-record overhead around the kernel).
 
 Verdict ratios recomputed from the Nsight kernel durations (fair to cuBLAS, whose event time includes part of its host-side call path):
 - H1: v2 232.5–237.7 GB/s (≥ 193), t(v2)/t(cuBLAS) 0.721–0.995 (≤ 1.15).
-- H2: t(cuBLAS)/t(v3) 2.01–2.78 (≥ 1.7); t(cuBLAS)/t(v4) 3.35–5.34 (≥ 2.6).
+- H2: t(cuBLAS)/t(v3) 2.01–2.78 (≥ 1.7); t(cuBLAS)/t(v4) 3.35–5.34 (≥ 2.6; the low end is the perturbed `down` v4 row).
 - Every verdict is unchanged.
 
-Kernels cuBLAS chose (`results/nsys/cublas_kernels.md`): every call runs one `internal::gemvx::kernel` instance; the launch shape (threads per block) is what differs between the slow and the fast choice.
+Kernels cuBLAS chose (`results/nsys/cublas_kernels.md`): every `cublasGemmEx` call runs one `internal::gemvx::kernel` instance. Its default for K = 2560/4096 and the fastest passing cuBLASLt algorithm are instances of that template with different template parameters and launch shapes (16 × 4 vs 32 × 4 threads per block on gate); which parameter matters is not resolved — another algorithm with the fast one's launch shape is also slow.
 
 ## Figures
 
-- `figures/fig_ladder.png`: Achieved bandwidth (isolated median, GB/s on the bytes each format stores) of the kernel ladder and cuBLAS on one matrix of each shape; dashed lines: rated 273 GB/s and the proposal's 241 GB/s read reference; black ticks: a plain read of the same BF16 bytes.
-- `figures/fig_speedup_bytes.png`: Measured speedup of INT8 (v3, byte ratio ≈ 2) and INT4 (v4, ≈ 3.9) over the BF16 v2 kernel against the byte ratio, by matrix size; on the dashed line, time is exactly proportional to bytes.
-- `figures/fig_speed_accuracy.png`: Speed–accuracy trade-off on the nine hypothesis matrices: speedup over BF16 v2 against the relative output error (BF16's error is its output rounding alone).
-- `figures/fig_ablation.png`: v2 ablation: the frozen v2 with one factor changed at a time; change in isolated time on four matrices of different shape.
-- `figures/fig_rotation.png`: Rotation sweep: isolated rate against the total footprint of the rotating copies (in units of the 24 MiB L2). Rates fall to a plateau only from about 16 × L2; the planned rule (4 × L2) left some data cached. Values above ~273 GB/s are cache hits.
-- `figures/fig_accuracy_layers.png`: Relative output error (Gaussian x) of every large matrix in all 32 layers, INT8 (left) and INT4 (right); dashed: the H3 thresholds (2%, 15%).
-- `figures/fig_timing_modes.png`: Back-to-back (CUDA-graph) time per launch relative to the isolated time, for every ladder kernel and matrix: the shorter the kernel, the more a fixed per-launch cost matters.
-- `figures/fig_per_token.png`: Decode speed implied by the measured GEMV times alone (sum over one token's large GEMVs, streamed mode) per format, against the byte-count ceiling at 241 GB/s.
+- `figures/fig_ladder.png`: Achieved bandwidth (isolated median over three executions, GB/s on the bytes each format stores) of the kernel ladder and cuBLAS on one matrix of each shape. Black ticks: a plain read of the same bytes in the same format and rotation (the size-matched reference); dashed: rated 273 GB/s and the proposal's 241 GB/s.
+- `figures/fig_speedup_bytes.png`: Isolated speedup of INT8 (v3) and INT4 (v4) over the BF16 v2 kernel against the byte ratio; colour = format, shape = matrix size; points are offset horizontally by up to ±0.04 for visibility. On the dashed line, time is exactly proportional to bytes.
+- `figures/fig_speed_accuracy.png`: Speed–accuracy trade-off on the nine hypothesis matrices: isolated speedup over BF16 v2 against the relative output error for the fixed Gaussian x (BF16's error is its output rounding alone).
+- `figures/fig_ablation.png`: v2 ablation: the frozen v2 with one factor changed at a time; change in isolated time on four matrices (light to dark = small to large).
+- `figures/fig_rotation.png`: Rotation sweeps: isolated rate against the total footprint of the rotating copies (units of the 24 MiB L2). Top: development kernels before the rule change (the evidence for it); bottom: the frozen kernels. Dashed verticals: the planned 4 × L2 and the adopted 32 × L2; dotted: rated 273 GB/s (anything above it comes from a cache). The axis is cut at 400 GB/s: footprints that fit in L2 reach 900+ GB/s.
+- `figures/fig_accuracy_layers.png`: Relative output error (fixed Gaussian x) of every large matrix in all 32 layers and the LM head, INT8 (left) and INT4 (right); marker shape = matrix type; dashed: the H3 thresholds (2%, 15%).
+- `figures/fig_timing_modes.png`: Back-to-back (CUDA-graph) time per launch relative to the isolated time, for every ladder kernel and matrix (colour and shape = weight format): the shorter the kernel, the more the per-launch event overhead and start-up/tail cost matter.
+- `figures/fig_per_token.png`: Decode speed implied by the measured GEMV times alone (sum over one token's 201 large GEMVs, streamed mode, every weight in the given format — INT4 includes the LM head) against the byte-count ceiling at 241 GB/s.

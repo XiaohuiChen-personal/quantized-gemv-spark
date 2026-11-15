@@ -69,15 +69,16 @@ make test         # CUDA unit tests + Python quantizer tests
 ```
 
 `build/test` runs every kernel configuration the benchmark can use (the ladder,
-cuBLAS/cuBLASLt and all 216 tuning configurations) on awkward shapes with random and ±1
+cuBLAS and all 216 tuning configurations; cuBLASLt's heuristic algorithms are only
+checked, not required to pass, in the benchmark) on awkward shapes with random and ±1
 inputs, exact one-hot checks (x = e_k must return bf16(w[:, k]) bit for bit, at chunk
 and group edges, over all 16 INT4 codes), and mutation tests that must make the checker
 fail (a changed weight, the last 32 columns zeroed, one column zeroed, nibbles swapped,
 group scales swapped, the last row not computed). Expected ending:
 
 ```
-kernels: 239 tested, ... checks passed, 0 failed so far
-total: ... checks passed, 0 failed
+kernels: 231 tested, 28655 checks passed, 0 failed so far
+total: 28721 checks passed, 0 failed
 ALL TESTS PASSED
 ```
 
@@ -118,17 +119,27 @@ so the scripts also refuse to run while another process holds the GPU.
 ## How the timing works
 
 - **Rotation:** each launch reads a different device copy of the matrix; R = max(2,
-  ⌈32 × L2 / stored bytes⌉) copies. The planned 4 × L2 was not enough on the GB10: the
-  rotation sweep (`results/rotation/`) showed rates up to 14% above the DRAM plateau
-  there.
-- **Isolated** (the measure every verdict uses): 200 launches, each between its own pair
-  of CUDA events, with a 100 µs spin kernel queued before the start event so the events
-  bracket only the GPU's execution and not the host's launch latency. **Cold**: the same
-  without the spin kernel. **Streamed**: 200 launches captured in one CUDA graph,
-  replayed 5 times. Warm-up: at least 20 launches and 200 ms.
+  ⌈32 × L2 / stored bytes⌉) copies (an 805 MB footprint). The planned 4 × L2 was not
+  enough on the GB10: the rotation sweep (`results/rotation/`) showed rates up to 14% above
+  the DRAM plateau there. Even at 32 × L2 about one launch per rotation cycle runs faster
+  than the rest; medians ignore it.
+- **Isolated** (the measure every pre-registered verdict uses): 200 launches, each between
+  its own pair of CUDA events on an otherwise idle GPU, synchronized after each launch.
+  Events add a small overhead to the kernel's own duration (median 2.4 µs over the final
+  set, against Nsight Systems kernel durations); for cuBLAS they also catch part of its
+  host-side call path.
+- **Streamed:** whole rotation cycles (at least 200 launches) captured in one CUDA graph and
+  replayed 5 times; per-launch time = replay time / launches. This is how a decode engine
+  runs kernels and is used for the per-token model and for the Marlin comparison.
+- **Spin** (diagnostic only): isolated with a spin kernel before the start event. It was
+  briefly the isolated measure; on the GB10 it added overhead and quantized the results
+  (`results/timing_method/`), so it is only recorded.
+- Warm-up: at least 20 launches and 200 ms. Kernel order is shuffled in each of the three
+  final executions. GPU clocks, power and temperature are logged next to every run.
 - **Correctness before and after timing**, against a double-precision CPU reference
   built from the same inputs: every element within 2⁻⁸·|y| + 2⁻¹⁴·Σ|w·x| and a relative
-  L2 error ≤ 4 × 10⁻³, for a Gaussian x and a ±1 x.
+  L2 error ≤ 4 × 10⁻³, for a Gaussian x and a ±1 x; the output after timing must also be
+  bitwise identical to the first.
 - **GB/s** counts weights + scales + x + y; GB = 10⁹ bytes.
 
 ## Layout

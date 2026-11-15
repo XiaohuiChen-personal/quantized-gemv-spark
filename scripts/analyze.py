@@ -39,11 +39,16 @@ KLABEL = {"v0": "v0 thread/row", "v1": "v1 warp/row", "v2": "v2 BF16", "cublas":
           "cublaslt": "cuBLASLt best", "v3": "v3 INT8", "v4": "v4 INT4", "v4load": "v4 load-only",
           "read": "read reference"}
 
-# Reference palette (dataviz skill, light mode), categorical slots in fixed order. Each
-# entity keeps its slot in every figure.
+# Reference palette (dataviz skill, light mode). Every entity keeps one colour in every
+# figure: the kernels take fixed categorical slots, and a weight format takes the colour of
+# its kernel (BF16 = v2, INT8 = v3, INT4 = v4). Read references are neutral grey. Marker
+# shapes are a second encoding wherever points of different series can overlap.
 SLOT = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"]
-KCOLOR = dict(zip(LADDER, SLOT))
-FCOLOR = {"bf16": SLOT[0], "int8": SLOT[1], "int4": SLOT[2]}
+KCOLOR = {"v0": SLOT[0], "v1": SLOT[1], "v2": SLOT[2], "cublas": SLOT[3], "v3": SLOT[4], "v4": SLOT[6],
+          "cublaslt": SLOT[7]}
+FCOLOR = {"bf16": KCOLOR["v2"], "int8": KCOLOR["v3"], "int4": KCOLOR["v4"]}
+FMARK = {"bf16": "o", "int8": "s", "int4": "^"}
+BLUE_RAMP = ["#86b6ef", "#3987e5", "#1c5cab", "#0d366b"]  # sequential (ordinal) blue steps 250-700
 INK, INK2, GRID, SURFACE = "#0b0b0b", "#52514e", "#e4e3df", "#ffffff"
 plt.rcParams.update({
     "figure.facecolor": SURFACE, "axes.facecolor": SURFACE, "savefig.facecolor": SURFACE,
@@ -122,6 +127,20 @@ class Analysis:
         self.lt_ok = {m: set(d[d.ok].config) for m, d in okc.groupby("matrix")}
         self.lt_failed = okc[~okc.ok]
         self.agg["gbps"] = self.agg["bytes"] / (self.agg["iso"] * 1e3)
+        self.nsys_df = self.nsys_table()
+        if len(self.nsys_df):
+            g = self.agg.merge(self.nsys_df, on=["matrix", "fmt", "kernel", "config"])
+            gap = g.iso - g.nsys
+            self.ev_gap = (gap.median(), gap.quantile(0.25), gap.quantile(0.75))
+        else:
+            self.ev_gap = (float("nan"),) * 3
+        sp = os.path.join(results, "final", "run1_samples.csv.gz")
+        self.fast = (0, 0, 0, 0)
+        if os.path.exists(sp):
+            smp = pd.read_csv(sp, comment="#")
+            smp = smp[(smp["mode"] == "iso") & smp.kernel.isin(["v1", "v2", "v3", "v4", "cublas"])]
+            cnt = smp.groupby(["matrix", "fmt", "kernel", "config"]).us.apply(lambda u: int((u < 0.85 * u.median()).sum()))
+            self.fast = (int(cnt.sum()), int(len(smp)), int((cnt > 0).sum()), int(len(cnt)))
         self.agg["gbps_str"] = self.agg["bytes"] / (self.agg["stream"] * 1e3)
 
     # ------------------------------------------------------------ lookups
@@ -233,8 +252,8 @@ class Analysis:
             all_ok &= ok_bw and ok_t
         self.verdict = {"H1": "CONFIRMED" if all_ok else "REFUTED"}
         self.md += ["## 4. H1 — the bandwidth limit", "",
-                    "Rule: on gate, up, down, qkv, q and the LM head, v2 ≥ 193 GB/s (80% of 241) **and** "
-                    "t(v2) ≤ 1.15 × t(cuBLAS GemmEx).", "",
+                    "Rule: on gate, up, down, qkv, q and the LM head, v2 ≥ 193 GB/s (80% of 241 = 192.8; no value "
+                    "falls between the two) **and** t(v2) ≤ 1.15 × t(cuBLAS GemmEx).", "",
                     md_table(pd.DataFrame(rows), {"v2 GB/s": "{:.1f}", "t(v2)/t(cuBLAS)": "{:.3f}",
                                                   "t(v2)/t(cuBLASLt best)": "{:.3f}"}),
                     "", f"**Verdict H1: {self.verdict['H1']}.**", ""]
@@ -340,52 +359,96 @@ class Analysis:
                             f"errors (`scripts/accuracy_sweep.py`) agree with the C++ CPU-only errors: {agree}.", ""]
 
     def h4(self):
-        p = os.path.join(self.R, "marlin", "marlin.csv")
-        if not os.path.exists(p):
+        runs = sorted(glob.glob(os.path.join(self.R, "marlin", "marlin_run[0-9].csv")))
+        if not runs:
             self.verdict["H4"] = "not run"
-            self.md += ["## 7. H4 — Marlin (stretch)", "", "Not run (no `results/marlin/marlin.csv`).", ""]
+            self.md += ["## 7. H4 — Marlin (stretch)", "", "Not run (no `results/marlin/marlin_run*.csv`).", ""]
             return
-        mr = read(p)
+        mr = pd.concat([read(p) for p in runs]).groupby("matrix").median(numeric_only=True)
+        at = os.path.join(self.R, "marlin", "marlin_runatomic.csv")
+        ma = read(at).set_index("matrix") if os.path.exists(at) else None
         rows, ok = [], True
-        for _, r in mr.iterrows():
-            tv4 = self.t(r.matrix, "v4")
-            ratio = tv4 / r.marlin_us
-            if r.matrix in H2_MATS:  # H4 is judged on the H2 matrices; the rest are shown
+        for m in ALL_MATS:
+            if m not in mr.index:
+                continue
+            r = mr.loc[m]
+            ratio = self.t(m, "v4", "stream") / r.marlin_str_us  # the judged, like-for-like ratio
+            others = [self.t(m, "v4") / r.marlin_us, self.t(m, "v4", "spin") / r.marlin_spin_us]
+            if m in H2_MATS:
                 ok &= ratio <= 1.5
-            rows.append({"matrix": r.matrix, "t(v4) us": tv4, "t(Marlin) us": r.marlin_us,
-                         "t(v4)/t(Marlin)": ratio, "≤1.5?": "yes" if ratio <= 1.5 else "NO",
-                         "streamed v4/Marlin": self.t(r.matrix, "v4", "stream") / r.marlin_str_us,
-                         "Marlin err vs BF16": fmt_pct(r.marlin_rel_err_vs_bf16, 2),
+                self.h4_all_modes_pass = getattr(self, "h4_all_modes_pass", True) and max([ratio] + others) <= 1.5
+            rows.append({"matrix": m, "streamed v4 us": self.t(m, "v4", "stream"), "streamed Marlin us": r.marlin_str_us,
+                         "streamed v4/Marlin": ratio, "≤1.5?": "yes" if ratio <= 1.5 else "NO",
+                         "spin v4/Marlin": others[1], "plain-event v4/Marlin": others[0],
+                         "streamed Marlin atomic-add us": float(ma.loc[m].marlin_str_us) if ma is not None else float("nan"),
+                         "err v4 / Marlin": f"{fmt_pct(self.row(m, 'v4').acc_rel, 2)} / {fmt_pct(r.marlin_rel_err_vs_bf16, 2)}",
                          "PyTorch F.linear BF16 us": r.torch_linear_bf16_us})
         self.verdict["H4"] = "CONFIRMED" if ok else "REFUTED"
-        self.md += ["## 7. H4 — Marlin (stretch)", "", "Rule: t(v4) ≤ 1.5 × t(Marlin) at batch 1 on the H2 matrices "
-                    "(gate, up, down, LM head); all matrices shown. Marlin = vLLM 0.16's `marlin_gemm` on the same BF16 "
-                    "weights quantized by vLLM's own `marlin_quantize` (uint4b8, group 128), timed with the same rules "
-                    "(`results/marlin/`, PyTorch events, `torch.cuda._sleep` before the isolated start event). PyTorch's "
-                    "BF16 `F.linear` is timed alongside.", "",
-                    md_table(pd.DataFrame(rows), {"t(v4) us": "{:.2f}", "t(Marlin) us": "{:.2f}", "t(v4)/t(Marlin)": "{:.3f}",
-                                                  "streamed v4/Marlin": "{:.3f}", "PyTorch F.linear BF16 us": "{:.1f}"}),
-                    "", f"**Verdict H4: {self.verdict['H4']}.**", ""]
+        t = pd.DataFrame(rows)
+        big = t[~t.matrix.isin(["k", "v"])]
+        self.md += ["## 7. H4 — Marlin (stretch)", "",
+                    "Rule: t(v4) ≤ 1.5 × t(Marlin) at batch 1. Judged on the H2 matrices (gate, up, down, LM head); the "
+                    "proposal says \"the same matrices\", and every matrix shown also passes. Judged on the **streamed** "
+                    "(CUDA-graph) times, the only mode in which both are timed without host-side cost: Marlin is called "
+                    "through Python, so its plain-event time includes ~9 µs of dispatch between the start event and the "
+                    "kernel (e.g. gate: 66 µs plain vs 57 µs with a sleep kernel first vs 55 µs streamed). The verdict is "
+                    "the same in all three modes. Marlin = vLLM 0.16's "
+                    f"`marlin_gemm` (uint4b8, group 128) on the same BF16 weights, quantized by vLLM's own "
+                    f"`marlin_quantize`; {len(runs)} executions in the `vllm-node-qwen35` container (median shown), timed "
+                    "with the harness's three modes (isolated = plain events, spin = sleep kernel before the start "
+                    "event, streamed = CUDA graph) and rotation (`results/marlin/`). Caveats: another process and "
+                    "session, PyTorch events, the container's CUDA 13.1 forward-compatibility runtime, and vLLM's "
+                    "quantizer (scale = max|w| / 7.5, codes −8…7) rather than mine; the atomic-add column is the "
+                    "variant vLLM's log recommends for small N (one execution).", "",
+                    md_table(t, {"streamed v4 us": "{:.2f}", "streamed Marlin us": "{:.2f}", "plain-event v4/Marlin": "{:.3f}",
+                                 "spin v4/Marlin": "{:.3f}", "streamed v4/Marlin": "{:.3f}",
+                                 "streamed Marlin atomic-add us": "{:.2f}", "PyTorch F.linear BF16 us": "{:.1f}"}), "",
+                    f"Matrices of 21 MB and up: streamed v4/Marlin {big['streamed v4/Marlin'].min():.2f}–"
+                    f"{big['streamed v4/Marlin'].max():.2f} (spin {big['spin v4/Marlin'].min():.2f}–{big['spin v4/Marlin'].max():.2f}; "
+                    f"plain events {big['plain-event v4/Marlin'].min():.2f}–{big['plain-event v4/Marlin'].max():.2f}, which "
+                    "favours v4 because of Marlin's Python dispatch). All modes pass: "
+                    f"{'yes' if getattr(self, 'h4_all_modes_pass', False) else 'NO'}.", "",
+                    f"**Verdict H4: {self.verdict['H4']}.**", ""]
+        self.marlin = t
+
+    def nsys_table(self):
+        p = os.path.join(self.R, "nsys", "crosscheck.md")
+        rows = []
+        if os.path.exists(p):
+            for l in open(p):
+                c = [x.strip() for x in l.strip().strip("|").split("|")]
+                if len(c) == 6 and re.match(r"[\d.]+$", c[2] or "x"):
+                    m, f, k, cfg = c[0].split()[:4]
+                    rows.append({"matrix": m, "fmt": f, "kernel": k, "config": cfg, "bench": float(c[1]), "nsys": float(c[2])})
+        return pd.DataFrame(rows)
+
+    def nt(self, m, k):
+        n = self.nsys_df
+        d = n[(n.matrix == m) & (n.kernel == k)] if len(n) else n
+        return float(d.nsys.min()) if len(d) else float("nan")
 
     def small_vs_large(self):
         out = {}
-        for mode in ("iso", "stream"):
-            s47 = [self.t(m, "v2", mode) / self.t(m, "v4", mode) for m in ("gate", "up", "down")]
-            s21 = [self.t(m, "v2", mode) / self.t(m, "v4", mode) for m in ("z", "out", "o")]
-            s5 = [self.t(m, "v2", mode) / self.t(m, "v4", mode) for m in ("k", "v")]
-            out[mode] = (np.mean(s47), np.mean(s21), np.mean(s5))
+        for mode in ("iso", "stream", "nsys"):
+            def sp(m):
+                return self.nt(m, "v2") / self.nt(m, "v4") if mode == "nsys" else self.t(m, "v2", mode) / self.t(m, "v4", mode)
+            out[mode] = (np.mean([sp(m) for m in ("gate", "up", "down")]), np.mean([sp(m) for m in ("z", "out", "o")]),
+                         np.mean([sp(m) for m in ("k", "v")]))
         self.md += ["## 8. Exploratory — do the 21 MB matrices gain less? (CONTEXT.md §6.1)", "",
                     "INT4 speedup over BF16 v2, t(v2)/t(v4), mean per size class. Prediction: ≈ 3.75× (47 MB) vs "
-                    "≈ 3.6× (21 MB), a gap of about 4%; > 10% would point to another cause.", "",
-                    "| timing mode | 47 MB (gate, up, down) | 21 MB (z, out, o) | gap 21 vs 47 | 5 MB (k, v) |",
+                    "≈ 3.6× (21 MB), a gap of about 4%; > 10% would point to another cause. The `nsys` row uses the "
+                    "Nsight kernel durations of the single profiled pass (no event overhead).", "",
+                    "| timing | 47 MB (gate, up, down) | 21 MB (z, out, o) | gap 21 vs 47 | 5 MB (k, v) |",
                     "| --- | --- | --- | --- | --- |"]
         for mode, (a, b, c) in out.items():
             self.md.append(f"| {mode} | {a:.2f}× | {b:.2f}× | {fmt_pct(1 - b / a)} | {c:.2f}× |")
         gap = 1 - out["iso"][1] / out["iso"][0]
-        self.md += ["", f"Isolated gap {fmt_pct(gap)}: " + ("above the 10% trigger, so another cause is at work."
-                    if gap > 0.10 else "between the predicted ~4% and the 10% trigger: no evidence of a cause beyond "
-                    "fixed per-launch costs; the 5 MB matrices show that cost clearly." if gap > 0.04 else
-                    "within the predicted ~4%."), ""]
+        self.md += ["", f"Isolated gap {fmt_pct(gap)}: above the predicted ~4% but below the 10% trigger; streamed "
+                    f"{fmt_pct(1 - out['stream'][1] / out['stream'][0])}, and with Nsight kernel durations only "
+                    f"{fmt_pct(1 - out['nsys'][1] / out['nsys'][0])}. So the excess over the prediction is the event "
+                    "overhead per launch (§9, §15), not a property of the 21 MB matrices' kernels. On the 5 MB matrices the "
+                    f"penalty is real but also inflated by events: {out['nsys'][2]:.2f}× with Nsight durations vs "
+                    f"{out['iso'][2]:.2f}× isolated; a plain read of 1.3 MB also reaches only ~155 GB/s (§3).", ""]
         self.small = out
 
     def timing_modes(self):
@@ -399,10 +462,18 @@ class Analysis:
                     "(whole rotation cycles in one CUDA graph) for the ladder kernels, all matrices.", "",
                     f"- streamed / isolated: median {a['str/iso'].median():.3f}, range {a['str/iso'].min():.3f}–{a['str/iso'].max():.3f}; "
                     f"for kernels under 30 µs: median {a[a.iso < 30]['str/iso'].median():.3f}; over 1 ms: "
-                    f"{a[a.iso > 1000]['str/iso'].median():.3f}. Isolated − streamed: median {a['iso-str us'].median():.2f} µs "
-                    "(the per-launch cost a back-to-back stream hides).",
+                    f"{a[a.iso > 1000]['str/iso'].median():.3f}. Isolated − streamed: median {a['iso-str us'].median():.2f} µs; "
+                    "part of that is the event overhead that the streamed mode does not pay per launch (final-run events "
+                    f"exceed the Nsight kernel durations by a median {self.ev_gap[0]:.1f} µs, IQR {self.ev_gap[1]:.1f}–"
+                    f"{self.ev_gap[2]:.1f}), the rest is launch start-up and tail that back-to-back kernels overlap.",
                     f"- spin − isolated: median {a['spin-iso us'].median():+.2f} µs (range {a['spin-iso us'].min():+.2f} to "
-                    f"{a['spin-iso us'].max():+.2f}).", ""]
+                    f"{a['spin-iso us'].max():+.2f}); negative mostly for cuBLAS, whose plain-event time includes part "
+                    "of its host-side call path (≤ 1% on the H1/H2 matrices, 1.6–1.8% on the 21 MB ones).",
+                    f"- Residual caching: {self.fast[0]} of {self.fast[1]} isolated samples of the ladder kernels in "
+                    f"execution 1 are ≥ 15% faster than their row's median, in {self.fast[2]} of {self.fast[3]} rows, "
+                    "about one per rotation cycle (e.g. `down` v2: 11 of 200 with R = 18) — one copy of the rotation "
+                    "evidently still meets a warm cache or a favourable placement. The median ignores them; streamed "
+                    "means include them (≲ 1%).", ""]
         self.modes = a
 
     def ablation(self):
@@ -518,7 +589,7 @@ class Analysis:
             s = read(p)
             s["stored"] = np.where(s.kernel == "read", s.bytes_counted, s.bytes_counted - 2 * s.K - 2 * s.M)
             s["footprint_L2"] = s.copies * s.stored / 25165824
-            lines += [f"`results/rotation/{name}`: isolated GB/s at footprints of about 4, 16 and ≥ 64 × L2:", "",
+            lines += [f"`results/rotation/{name}` ({'development kernels and the spin-based timing, before the rule change' if 'pre' in name else 'the frozen kernels and the final timing'}): isolated GB/s at footprints of about 4, 16 and ≥ 64 × L2:", "",
                       "| matrix | fmt | kernel | ≈4×L2 | ≈16×L2 | plateau (≥64×L2, median) | 4×L2 excess |", "| --- | --- | --- | --- | --- | --- | --- |"]
             for (m, f, k), d in s.groupby(["matrix", "fmt", "kernel"], sort=False):
                 d = d.sort_values("footprint_L2")
@@ -527,42 +598,50 @@ class Analysis:
                 lines.append(f"| {m} | {f} | {k} | {near(4):.0f} | {near(16):.0f} | {plat:.0f} | {fmt_pct(near(4) / plat - 1)} |")
             lines.append("")
             self.rot = getattr(self, "rot", {}) | {name: s}
+        ex = {}
+        for name, sdf in getattr(self, "rot", {}).items():
+            e = []
+            for _, d in sdf.groupby(["matrix", "fmt", "kernel"]):
+                d = d.sort_values("footprint_L2")
+                plat = d[d.footprint_L2 >= 60].gbps_iso.median()
+                e.append(d.iloc[(d.footprint_L2 - 4).abs().argmin()].gbps_iso / plat - 1)
+            ex[name] = max(e)
+        lines += ["Reading: at 4 × L2 the worst excess over the plateau is "
+                  + "; ".join(f"{fmt_pct(v)} in `{n}`" for n, v in ex.items())
+                  + " (both on the 21 MB BF16 `out`), so the planned rule would have inflated that matrix with either "
+                  "kernel set. From 16 × L2 on, rates are within a few percent of the plateau. Medians at the adopted "
+                  "32 × L2 still include about one fast launch per rotation cycle (§9).", ""]
         self.md += lines
 
     def nsys(self):
         p = os.path.join(self.R, "nsys", "crosscheck.md")
         if not os.path.exists(p):
             return
-        txt = open(p).read().strip().splitlines()
-        summ = [l for l in txt if l.startswith(tuple("0123456789"))]
-        rows = []
-        for l in txt:
-            c = [x.strip() for x in l.strip("|").split("|")]
-            if len(c) == 6 and re.match(r"[\d.]+$", c[2] or "x"):
-                m, f, k = c[0].split()[:3]
-                rows.append({"matrix": m, "fmt": f, "kernel": k, "config": c[0].split()[3], "bench": float(c[1]), "nsys": float(c[2])})
-        n = pd.DataFrame(rows)
-        lines = ["## 15. Nsight Systems cross-check (ground-truth kernel durations)", "",
-                 "One final-set pass under `nsys profile --trace=cuda,nvtx` (`results/nsys/`). Per bench row, the median "
-                 "kernel duration of its 200 isolated launches vs the bench's event median in that same run:"] + summ + [""]
+        summ = [l.strip() for l in open(p) if l[:1].isdigit()]
+        n = self.nsys_df
+        lines = ["## 15. Nsight Systems cross-check (kernel durations)", "",
+                 "One final-set pass under `nsys profile --trace=cuda,nvtx` (`results/nsys/`): a single, profiled "
+                 "execution, so it is a cross-check rather than a fourth measurement (profiling perturbs a few rows, "
+                 "e.g. `down` v4 ran at 60.9 µs there vs 57.8 µs in the finals). Per bench row, the median kernel "
+                 "duration of its 200 isolated launches vs the bench's event median in that same pass:"] + summ + [""]
         if len(n):
-            def nt(m, k):
-                d = n[(n.matrix == m) & (n.kernel == k)]
-                return float(d.nsys.min()) if len(d) else float("nan")
-            h1 = [nt(m, "v2") / nt(m, "cublas") for m in H1_MATS]
-            h28 = [nt(m, "cublas") / nt(m, "v3") for m in H2_MATS]
-            h24 = [nt(m, "cublas") / nt(m, "v4") for m in H2_MATS]
-            v2bw = [self.row(m, "v2").bytes / (nt(m, "v2") * 1e3) for m in H1_MATS]
+            h1 = [self.nt(m, "v2") / self.nt(m, "cublas") for m in H1_MATS]
+            h28 = [self.nt(m, "cublas") / self.nt(m, "v3") for m in H2_MATS]
+            h24 = [self.nt(m, "cublas") / self.nt(m, "v4") for m in H2_MATS]
+            v2bw = [self.row(m, "v2").bytes / (self.nt(m, "v2") * 1e3) for m in H1_MATS]
             lines += ["Verdict ratios recomputed from the Nsight kernel durations (fair to cuBLAS, whose event time includes "
                       "part of its host-side call path):",
                       f"- H1: v2 {min(v2bw):.1f}–{max(v2bw):.1f} GB/s (≥ 193), t(v2)/t(cuBLAS) {min(h1):.3f}–{max(h1):.3f} (≤ 1.15).",
-                      f"- H2: t(cuBLAS)/t(v3) {min(h28):.2f}–{max(h28):.2f} (≥ 1.7); t(cuBLAS)/t(v4) {min(h24):.2f}–{max(h24):.2f} (≥ 2.6).",
+                      f"- H2: t(cuBLAS)/t(v3) {min(h28):.2f}–{max(h28):.2f} (≥ 1.7); t(cuBLAS)/t(v4) {min(h24):.2f}–{max(h24):.2f} "
+                      "(≥ 2.6; the low end is the perturbed `down` v4 row).",
                       "- Every verdict is unchanged." if (min(v2bw) >= 193 and max(h1) <= 1.15 and min(h28) >= 1.7 and min(h24) >= 2.6)
                       else "- **A verdict would change under Nsight durations — see the table.**", ""]
-        kp = os.path.join(self.R, "nsys", "cublas_kernels.md")
-        if os.path.exists(kp):
-            lines += ["Kernels cuBLAS chose (`results/nsys/cublas_kernels.md`): every call runs one `internal::gemvx::kernel` "
-                      "instance; the launch shape (threads per block) is what differs between the slow and the fast choice.", ""]
+        if os.path.exists(os.path.join(self.R, "nsys", "cublas_kernels.md")):
+            lines += ["Kernels cuBLAS chose (`results/nsys/cublas_kernels.md`): every `cublasGemmEx` call runs one "
+                      "`internal::gemvx::kernel` instance. Its default for K = 2560/4096 and the fastest passing "
+                      "cuBLASLt algorithm are instances of that template with different template parameters and launch "
+                      "shapes (16 × 4 vs 32 × 4 threads per block on gate); which parameter matters is not resolved — "
+                      "another algorithm with the fast one's launch shape is also slow.", ""]
         self.md += lines
 
     # ------------------------------------------------------------ figures
@@ -574,151 +653,175 @@ class Analysis:
 
     def fig_ladder(self):
         mats = ["gate", "down", "qkv", "z", "out", "k", "lmhead"]
-        fig, ax = plt.subplots(figsize=(7.6, 3.3))
+        fig, ax = plt.subplots(figsize=(7.6, 3.4))
         w = 0.13
         x = np.arange(len(mats))
         for i, k in enumerate(LADDER):
-            vals = [self.row(m, k).gbps for m in mats]
-            ax.bar(x + (i - 2.5) * w, vals, w * 0.92, color=KCOLOR[k], label=KLABEL[k], zorder=2)
+            for j, m in enumerate(mats):
+                r = self.row(m, k)
+                xb = j + (i - 2.5) * w
+                ax.bar(xb, r.gbps, w * 0.92, color=KCOLOR[k], label=KLABEL[k] if j == 0 else None, zorder=2)
+                rd = self.row(m, "read", r.fmt)  # a plain read of the bytes this bar's format stores
+                ax.plot([xb - w * 0.46, xb + w * 0.46], [rd.gbps] * 2, color=INK, lw=1.1, zorder=3)
+        ax.plot([], [], color=INK, lw=1.1, label="plain read of the same bytes")
         for y, lab in ((RATED, "rated 273"), (PROPOSAL_REF, "proposal 241")):
             ax.axhline(y, color=INK2, lw=0.9, ls=(0, (4, 3)), zorder=1)
             ax.text(len(mats) - 0.45, y + 2, lab, ha="right", va="bottom", fontsize=7.5, color=INK2)
-        for j, m in enumerate(mats):  # BF16 size-matched read reference
-            rd = self.row(m, "read", "bf16")
-            ax.plot([j - 3 * w, j + 3 * w], [rd.gbps] * 2, color=INK, lw=1.2, zorder=3)
-        ax.plot([], [], color=INK, lw=1.2, label="BF16 read ref (same size)")
         ax.set_xticks(x, [f"{m}\n{self.row(m, 'v2').M}\n×{self.row(m, 'v2').K}" for m in mats], fontsize=7.5)
         ax.set_ylabel("GB/s on stored bytes (isolated)")
         ax.set_ylim(0, 300)
-        ax.legend(ncol=4, fontsize=7.5, loc="upper left", bbox_to_anchor=(0, 1.22))
-        self.save(fig, "fig_ladder.png", "Achieved bandwidth (isolated median, GB/s on the bytes each format stores) of "
-                  "the kernel ladder and cuBLAS on one matrix of each shape; dashed lines: rated 273 GB/s and the "
-                  "proposal's 241 GB/s read reference; black ticks: a plain read of the same BF16 bytes.")
+        ax.legend(ncol=4, fontsize=7.5, loc="upper left", bbox_to_anchor=(0, 1.24))
+        self.save(fig, "fig_ladder.png", "Achieved bandwidth (isolated median over three executions, GB/s on the bytes "
+                  "each format stores) of the kernel ladder and cuBLAS on one matrix of each shape. Black ticks: a plain "
+                  "read of the same bytes in the same format and rotation (the size-matched reference); dashed: rated "
+                  "273 GB/s and the proposal's 241 GB/s.")
 
     def fig_speedup_bytes(self):
-        fig, ax = plt.subplots(figsize=(4.6, 3.3))
-        classes = [("≥ 42 MB + LM head", ["gate", "up", "down", "qkv", "q", "lmhead"], SLOT[0]),
-                   ("21 MB", ["z", "out", "o"], SLOT[1]), ("5 MB (k, v)", ["k", "v"], SLOT[2])]
+        fig, ax = plt.subplots(figsize=(4.8, 3.4))
+        classes = [("≥ 42 MB + LM head", ["gate", "up", "down", "qkv", "q", "lmhead"], "o"),
+                   ("21 MB", ["z", "out", "o"], "s"), ("5 MB (k, v)", ["k", "v"], "^")]
         lim = 4.3
         ax.plot([1, lim], [1, lim], color=INK2, lw=1, ls=(0, (4, 3)))
         ax.text(3.95, 4.05, "speedup = byte ratio", fontsize=7.5, color=INK2, ha="right")
-        for lab, ms, c in classes:
-            xs, ys = [], []
-            for m in ms:
-                for k in ("v3", "v4"):
-                    xs.append(self.agg_bytes_ratio(m, k))
-                    ys.append(self.t(m, "v2") / self.t(m, k))
-            ax.scatter(xs, ys, s=30, color=c, edgecolor=SURFACE, linewidth=1.2, label=lab, zorder=3)
+        rng = np.random.default_rng(0)
+        for lab, ms, mk in classes:
+            for k, f in (("v3", "int8"), ("v4", "int4")):
+                xs = [self.agg_bytes_ratio(m, k) + rng.uniform(-0.04, 0.04) for m in ms]
+                ys = [self.t(m, "v2") / self.t(m, k) for m in ms]
+                ax.scatter(xs, ys, s=34, marker=mk, color=FCOLOR[f], edgecolor=SURFACE, linewidth=1.0, zorder=3)
+        for lab, _, mk in classes:
+            ax.scatter([], [], marker=mk, color=INK2, s=30, label=lab)
+        for f, lab in (("int8", "INT8 (v3)"), ("int4", "INT4 (v4)")):
+            ax.scatter([], [], marker="o", color=FCOLOR[f], s=30, label=lab)
         ax.set_xlabel("byte ratio (BF16 bytes / quantized bytes)")
-        ax.set_ylabel("speedup over v2, t(v2)/t(quantized)")
+        ax.set_ylabel("isolated speedup over v2, t(v2)/t(quantized)")
         ax.set_xlim(1, lim)
         ax.set_ylim(1, lim)
-        ax.legend(loc="upper left", fontsize=7.5)
-        self.save(fig, "fig_speedup_bytes.png", "Measured speedup of INT8 (v3, byte ratio ≈ 2) and INT4 (v4, ≈ 3.9) "
-                  "over the BF16 v2 kernel against the byte ratio, by matrix size; on the dashed line, time is "
-                  "exactly proportional to bytes.")
+        ax.legend(loc="upper left", fontsize=7.2, ncol=1)
+        self.save(fig, "fig_speedup_bytes.png", "Isolated speedup of INT8 (v3) and INT4 (v4) over the BF16 v2 kernel "
+                  "against the byte ratio; colour = format, shape = matrix size; points are offset horizontally by up to "
+                  "±0.04 for visibility. On the dashed line, time is exactly proportional to bytes.")
 
     def fig_speed_accuracy(self):
-        fig, ax = plt.subplots(figsize=(4.6, 3.3))
+        fig, ax = plt.subplots(figsize=(4.8, 3.4))
         for f, k in (("bf16", "v2"), ("int8", "v3"), ("int4", "v4")):
             xs = [self.row(m, k).acc_rel for m in HYP_MATS]
             ys = [self.t(m, "v2") / self.t(m, k) for m in HYP_MATS]
-            ax.scatter(xs, ys, s=30, color=FCOLOR[f], edgecolor=SURFACE, linewidth=1.2, label=f.upper(), zorder=3)
+            ax.scatter(xs, ys, s=34, marker=FMARK[f], color=FCOLOR[f], edgecolor=SURFACE, linewidth=1.0,
+                       label=f.upper(), zorder=3)
         for x, lab in ((0.02, "H3 INT8 limit 2%"), (0.15, "H3 INT4 limit 15%")):
             ax.axvline(x, color=INK2, lw=0.9, ls=(0, (4, 3)))
             ax.text(x * 1.06, 1.15, lab, rotation=90, fontsize=7, color=INK2, va="bottom")
         ax.set_xscale("log")
         ax.set_xlabel("relative output error vs BF16 weights (Gaussian x, log scale)")
-        ax.set_ylabel("speedup over v2")
+        ax.set_ylabel("isolated speedup over v2")
         ax.legend(loc="upper left", fontsize=7.5)
-        self.save(fig, "fig_speed_accuracy.png", "Speed–accuracy trade-off on the nine hypothesis matrices: speedup "
-                  "over BF16 v2 against the relative output error (BF16's error is its output rounding alone).")
+        self.save(fig, "fig_speed_accuracy.png", "Speed–accuracy trade-off on the nine hypothesis matrices: isolated "
+                  "speedup over BF16 v2 against the relative output error for the fixed Gaussian x (BF16's error is its "
+                  "output rounding alone).")
 
     def fig_ablation(self):
         if not hasattr(self, "abl"):
             return
         piv = self.abl
-        mats = [m for m in ("gate", "z", "k", "lmhead") if m in piv.columns]
+        mats = [m for m in ("k", "z", "gate", "lmhead") if m in piv.columns]  # increasing size
         fig, ax = plt.subplots(figsize=(6.4, 0.32 * len(piv) + 0.9))
         y = np.arange(len(piv))
         h = 0.8 / len(mats)
         for i, m in enumerate(mats):
-            ax.barh(y + (i - (len(mats) - 1) / 2) * h, 100 * piv[m].values, h * 0.9, color=SLOT[i], label=m, zorder=2)
+            ax.barh(y + (i - (len(mats) - 1) / 2) * h, 100 * piv[m].values, h * 0.9, color=BLUE_RAMP[i],
+                    label=f"{m} ({self.row(m, 'v2').bytes / 1e6:.0f} MB)", zorder=2)
         ax.axvline(0, color=INK2, lw=0.8)
         ax.set_yticks(y, piv.index)
         ax.invert_yaxis()
         ax.set_xlabel("change in isolated time vs frozen v2 (%; positive = slower)")
         ax.legend(ncol=len(mats), fontsize=7.5, loc="lower center", bbox_to_anchor=(0.5, 1.0))
         self.save(fig, "fig_ablation.png", "v2 ablation: the frozen v2 with one factor changed at a time; change in "
-                  "isolated time on four matrices of different shape.")
+                  "isolated time on four matrices (light to dark = small to large).")
 
     def fig_rotation(self):
         if not hasattr(self, "rot"):
             return
-        s = self.rot.get("sweep_final.csv", self.rot.get("sweep_footprint_pre_rule.csv"))
-        mats = [m for m in ("gate", "out", "k") if m in set(s.matrix)]
-        fig, axes = plt.subplots(1, len(mats), figsize=(7.0, 2.6), sharey=False)
-        series = [("bf16", "read"), ("bf16", "v2"), ("int4", "read"), ("int4", "v4")]
-        for ax, m in zip(np.atleast_1d(axes), mats):
-            for i, (f, k) in enumerate(series):
-                d = s[(s.matrix == m) & (s.fmt == f) & (s.kernel == k)].sort_values("footprint_L2")
-                ax.plot(d.footprint_L2, d.gbps_iso, color=SLOT[i], marker="o", ms=3.5, label=f"{f} {k}")
-            for x, lab in ((4, "planned 4×"), (32, "adopted 32×")):
-                ax.axvline(x, color=INK2, lw=0.8, ls=(0, (4, 3)))
-                ax.text(x * 1.12, 385, lab, fontsize=6.5, color=INK2, va="top")
-            ax.set_xscale("log", base=2)
-            ax.set_ylim(100, 400)
-            ax.set_title(f"{m} ({self.row(m, 'v2').M}×{self.row(m, 'v2').K})")
-            ax.set_xlabel("footprint of all copies / L2")
-        np.atleast_1d(axes)[0].set_ylabel("isolated GB/s")
-        h, l = np.atleast_1d(axes)[0].get_legend_handles_labels()
-        fig.legend(h, l, fontsize=7, ncol=4, loc="upper center", bbox_to_anchor=(0.5, -0.07))
-        self.save(fig, "fig_rotation.png", "Rotation sweep: isolated rate against the total footprint of the rotating "
-                  "copies (in units of the 24 MiB L2). Rates fall to a plateau only from about 16 × L2; the planned "
-                  "rule (4 × L2) left some data cached. Values above ~273 GB/s are cache hits.")
+        sweeps = [(n, self.rot[n]) for n in ("sweep_footprint_pre_rule.csv", "sweep_final.csv") if n in self.rot]
+        mats = ["gate", "out", "k"]
+        fig, axes = plt.subplots(len(sweeps), 3, figsize=(7.2, 2.5 * len(sweeps)), squeeze=False)
+        series = [("bf16", "read", INK2, "-"), ("bf16", "v2", KCOLOR["v2"], "-"),
+                  ("int4", "read", INK2, (0, (3, 2))), ("int4", "v4", KCOLOR["v4"], "-")]
+        for row, (name, s) in enumerate(sweeps):
+            for col, m in enumerate(mats):
+                ax = axes[row, col]
+                for f, k, c, ls in series:
+                    d = s[(s.matrix == m) & (s.fmt == f) & (s.kernel == k)].sort_values("footprint_L2")
+                    ax.plot(d.footprint_L2, d.gbps_iso, color=c, ls=ls, marker="o", ms=3, lw=1.6,
+                            label=f"{f.upper()} {'plain read' if k == 'read' else k}")
+                ax.axhline(RATED, color=INK2, lw=0.8, ls=(0, (1, 2)))
+                for xv, lab in ((4, "4×"), (32, "32×")):
+                    ax.axvline(xv, color=INK2, lw=0.8, ls=(0, (4, 3)))
+                    ax.text(xv * 1.1, 392, lab, fontsize=6.5, color=INK2, va="top")
+                ax.set_xscale("log", base=2)
+                ax.set_ylim(100, 400)
+                ax.set_title(f"{'before the rule change' if 'pre' in name else 'frozen kernels'}: {m}", fontsize=8.5)
+                if row == len(sweeps) - 1:
+                    ax.set_xlabel("footprint of all copies / L2")
+            axes[row, 0].set_ylabel("isolated GB/s")
+        h, l = axes[0, 0].get_legend_handles_labels()
+        fig.legend(h, l, fontsize=7, ncol=4, loc="upper center", bbox_to_anchor=(0.5, -0.0))
+        fig.tight_layout()
+        self.save(fig, "fig_rotation.png", "Rotation sweeps: isolated rate against the total footprint of the rotating "
+                  "copies (units of the 24 MiB L2). Top: development kernels before the rule change (the evidence for "
+                  "it); bottom: the frozen kernels. Dashed verticals: the planned 4 × L2 and the adopted 32 × L2; dotted: "
+                  "rated 273 GB/s (anything above it comes from a cache). The axis is cut at 400 GB/s: footprints that "
+                  "fit in L2 reach 900+ GB/s.")
 
     def fig_accuracy_layers(self):
         if not hasattr(self, "sweep"):
             return
         s = self.sweep.copy()
-        s["kind"] = s.short.str.extract(r"\.(mlp\.\w+|linear_attn\.\w+|self_attn\.\w+)$")[0].fillna("lm_head")
-        groups = [("MLP gate/up/down", r"mlp\."), ("DeltaNet in_proj_qkv / attn q_proj", r"in_proj_qkv|q_proj"),
-                  ("DeltaNet in_proj_z", r"in_proj_z"), ("out_proj / o_proj", r"out_proj|o_proj"), ("k_proj / v_proj", r"k_proj|v_proj")]
-        fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.8))
-        for ax, col, thr in ((axes[0], "rel_int8", 0.02), (axes[1], "rel_int4", 0.15)):
-            for i, (lab, pat) in enumerate(groups):
-                d = s[s.kind.str.contains(pat) & (s.layer.astype(str) != "")]
-                d = d[d.layer.notna()]
-                ax.scatter(d.layer.astype(int), 100 * d[col], s=12, color=SLOT[i], label=lab, zorder=3)
-            lm = s[s.kind == "lm_head"]
+        groups = [("MLP gate/up/down", r"mlp\.", "o"), ("in_proj_qkv / q_proj", r"in_proj_qkv|q_proj", "s"),
+                  ("in_proj_z", r"in_proj_z", "D"), ("out_proj / o_proj", r"out_proj|o_proj", "^"),
+                  ("k_proj / v_proj", r"k_proj|v_proj", "v")]
+        fig, axes = plt.subplots(1, 2, figsize=(7.2, 2.9))
+        for ax, col, thr, f in ((axes[0], "rel_int8", 0.02, "int8"), (axes[1], "rel_int4", 0.15, "int4")):
+            lay = s[s.layer.notna() & (s.layer.astype(str) != "")]
+            for lab, pat, mk in groups:
+                d = lay[lay.short.str.contains(pat)]
+                ax.scatter(d.layer.astype(int), 100 * d[col], s=13, marker=mk, facecolor="none",
+                           edgecolor=FCOLOR[f], linewidth=0.9, label=lab, zorder=3)
+            lm = s[s.type == "lm_head"]
             if len(lm):
-                ax.axhline(100 * lm[col].iloc[0], color=SLOT[5], lw=1.2, label="LM head")
+                ax.scatter([33.5], [100 * lm[col].iloc[0]], s=60, marker="*", color=FCOLOR[f], zorder=4, label="LM head")
             ax.axhline(100 * thr, color=INK2, lw=0.9, ls=(0, (4, 3)))
+            ax.text(0, 100 * thr, f" H3 limit {100 * thr:.0f}%", fontsize=7, color=INK2, va="bottom")
+            ax.set_xticks([0, 8, 16, 24, 31, 33.5], ["0", "8", "16", "24", "31", "LM"])
             ax.set_xlabel("layer")
-            ax.set_ylabel(("INT8" if col == "rel_int8" else "INT4") + " relative error (%)")
-        handles, labels = axes[1].get_legend_handles_labels()
+            ax.set_ylabel(("INT8" if f == "int8" else "INT4") + " relative error (%)")
+        handles = [plt.Line2D([], [], marker=mk, ls="", color=INK2, mfc="none") for _, _, mk in groups]
+        handles.append(plt.Line2D([], [], marker="*", ls="", color=INK2, ms=9))
+        labels = [lab for lab, _, _ in groups] + ["LM head"]
         fig.legend(handles, labels, fontsize=7, ncol=3, loc="upper center", bbox_to_anchor=(0.5, -0.02))
-        self.save(fig, "fig_accuracy_layers.png", "Relative output error (Gaussian x) of every large matrix in all 32 "
-                  "layers, INT8 (left) and INT4 (right); dashed: the H3 thresholds (2%, 15%).")
+        self.save(fig, "fig_accuracy_layers.png", "Relative output error (fixed Gaussian x) of every large matrix in all "
+                  "32 layers and the LM head, INT8 (left) and INT4 (right); marker shape = matrix type; dashed: the H3 "
+                  "thresholds (2%, 15%).")
 
     def fig_timing_modes(self):
         a = self.modes
-        fig, ax = plt.subplots(figsize=(4.6, 3.2))
+        fig, ax = plt.subplots(figsize=(4.8, 3.3))
         for f in ("bf16", "int8", "int4"):
             d = a[a.fmt == f]
-            ax.scatter(d.iso, d.stream / d.iso, s=22, color=FCOLOR[f], edgecolor=SURFACE, linewidth=1, label=f.upper(), zorder=3)
+            ax.scatter(d.iso, d.stream / d.iso, s=26, marker=FMARK[f], color=FCOLOR[f], edgecolor=SURFACE, linewidth=0.8,
+                       label=f.upper(), zorder=3)
         ax.axhline(1, color=INK2, lw=0.8)
         ax.set_xscale("log")
         ax.set_xlabel("isolated time per launch (µs, log scale)")
         ax.set_ylabel("streamed / isolated time")
         ax.legend(fontsize=7.5)
-        self.save(fig, "fig_timing_modes.png", "Back-to-back (CUDA-graph) time per launch relative to the isolated "
-                  "time, for every ladder kernel and matrix: the shorter the kernel, the more a fixed per-launch "
-                  "cost matters.")
+        self.save(fig, "fig_timing_modes.png", "Back-to-back (CUDA-graph) time per launch relative to the isolated time, "
+                  "for every ladder kernel and matrix (colour and shape = weight format): the shorter the kernel, the more "
+                  "the per-launch event overhead and start-up/tail cost matter.")
 
     def fig_per_token(self):
         t = self.pt
-        fig, ax = plt.subplots(figsize=(4.6, 3.0))
+        fig, ax = plt.subplots(figsize=(4.8, 3.0))
         x = np.arange(len(t))
         cols = [KCOLOR["cublas"], KCOLOR["v2"], KCOLOR["v3"], KCOLOR["v4"]]
         ax.bar(x, t["tokens/s (streamed)"], 0.55, color=cols, zorder=2)
@@ -730,7 +833,8 @@ class Analysis:
         ax.set_ylabel("tokens/s from GEMV time alone")
         ax.legend(fontsize=7.5, loc="upper left")
         self.save(fig, "fig_per_token.png", "Decode speed implied by the measured GEMV times alone (sum over one "
-                  "token's large GEMVs, streamed mode) per format, against the byte-count ceiling at 241 GB/s.")
+                  "token's 201 large GEMVs, streamed mode, every weight in the given format — INT4 includes the LM head) "
+                  "against the byte-count ceiling at 241 GB/s.")
 
     # ------------------------------------------------------------ run
     def run(self):

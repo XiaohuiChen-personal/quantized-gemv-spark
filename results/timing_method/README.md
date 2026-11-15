@@ -19,6 +19,13 @@ about 1.3 µs and lands on a ~1.024 µs lattice, hiding real differences. Cold e
 a fixed ~1.3–1.7 µs of event overhead (not the host's launch latency, which the driver
 evidently submits together with the start event).
 
+How far this generalizes: across the final kernel set, plain-event medians exceed the
+Nsight Systems kernel durations by a median 2.4 µs (IQR 1.7–2.9 µs; `results/nsys/`), and
+the spin variant sits a median +0.34 µs above the plain events (`results/ANALYSIS.md`
+§9), so the micro-benchmark's +1.3–1.7 µs and +1.3 µs are specific to that read kernel.
+The qualitative result holds: the spin variant does not get closer to the kernel's own
+duration, and for my kernels plain events are the better of the two.
+
 Decision: the pre-registered isolated measure is **cold** events around one launch (the
 proposal's original method); the spin variant is kept as a recorded diagnostic column
 (`spin_med_us`); Nsight Systems kernel durations of the final set are the ground-truth
