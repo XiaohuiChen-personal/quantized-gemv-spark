@@ -110,11 +110,16 @@ marlin)
     mkdir -p results/marlin
     env_report > results/marlin/env.txt
     gpu_log_start results/marlin/gpu_log.csv
-    docker run --rm --gpus all --ipc=host -e GIT_DESC="$(git describe --always --dirty)" -v "$PWD":/work -w /work \
-        vllm-node-qwen35:latest python3 scripts/marlin_bench.py --out results/marlin/marlin.csv \
-        > results/marlin/marlin.log 2>&1
+    # Three executions with vLLM's defaults (H4), then one with the atomic-add reduction its
+    # log recommends for small N (a variant, reported alongside).
+    for run in 1 2 3 atomic; do
+        extra=""; [ "$run" = atomic ] && extra="-e VLLM_MARLIN_USE_ATOMIC_ADD=1"
+        docker run --rm --gpus all --ipc=host -e GIT_DESC="$(git describe --always --dirty)" $extra \
+            -v "$PWD":/work -w /work vllm-node-qwen35:latest \
+            python3 scripts/marlin_bench.py --out results/marlin/marlin_run$run.csv > results/marlin/marlin_run$run.log 2>&1
+        grep -E '^(gate|down|lmhead) ' results/marlin/marlin_run$run.log
+    done
     gpu_log_stop
-    grep -v -i -E 'nvidia|copyright|license|terms|rights|compatib|driver version|^=+|^$' results/marlin/marlin.log | tail -12
     ;;
 sweep)
     mkdir -p results/accuracy

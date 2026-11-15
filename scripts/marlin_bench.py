@@ -7,8 +7,9 @@ repository mounted at /work. Same rules as the C++ harness:
   * INT4, symmetric (vLLM's uint4b8), group 128 along K, quantized by vLLM's own
     marlin_quantize (its round-to-nearest, scale = max|w| / 7.5 per group, codes -8..7);
   * rotating copies with a footprint >= 32 x L2;
-  * isolated: a GPU sleep kernel before the start event, events around one call, median
-    of 200; streamed: 200 calls captured in one CUDA graph, replayed 5 times.
+  * isolated: events around one call on an idle GPU (median of 200); spin: the same with
+    a GPU sleep kernel before the start event (diagnostic); streamed: whole rotation
+    cycles (>= 200 calls) in one CUDA graph, replayed 5 times.
 The output is checked against Marlin's own dequantized weights (w_ref) times x in FP64.
 PyTorch's BF16 F.linear (cuBLASLt via PyTorch) is timed the same way as a reference.
 
@@ -37,7 +38,11 @@ def load_bf16(path, shape):
 
 
 def time_op(fn_for_copy, ncopies, iso=200, graph_n=200, reps=5, warm_ms=200):
-    """fn_for_copy(i) runs one call on copy i. Returns (isolated median us, streamed median us)."""
+    """fn_for_copy(i) runs one call on copy i. Returns (isolated, spin, streamed) median us,
+    the same three modes as the C++ harness (gemv.cuh time_launch):
+      isolated  events around one call on an idle GPU, synchronized after each call;
+      spin      the same with a GPU sleep kernel before the start event (diagnostic);
+      streamed  whole rotation cycles (>= graph_n calls) in one CUDA graph, replayed."""
     s, e = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
     nxt = [1]
 
@@ -52,14 +57,19 @@ def time_op(fn_for_copy, ncopies, iso=200, graph_n=200, reps=5, warm_ms=200):
         if i % 16 == 0:
             torch.cuda.synchronize()
     torch.cuda.synchronize()
-    ts = []
-    for _ in range(iso):
-        torch.cuda._sleep(400_000)  # ~130-200 us of spinning: covers the host enqueue
-        s.record()
-        run()
-        e.record()
-        e.synchronize()
-        ts.append(s.elapsed_time(e) * 1e3)
+    out = []
+    for sleep in (False, True):
+        ts = []
+        for _ in range(iso):
+            if sleep:
+                torch.cuda._sleep(400_000)  # ~130-200 us of spinning
+            s.record()
+            run()
+            e.record()
+            e.synchronize()
+            ts.append(s.elapsed_time(e) * 1e3)
+        out.append(statistics.median(ts))
+    n = -(-graph_n // ncopies) * ncopies  # whole rotation cycles
     g = torch.cuda.CUDAGraph()
     side = torch.cuda.Stream()
     side.wait_stream(torch.cuda.current_stream())
@@ -67,7 +77,7 @@ def time_op(fn_for_copy, ncopies, iso=200, graph_n=200, reps=5, warm_ms=200):
         run()  # warm the side stream before capture
     torch.cuda.current_stream().wait_stream(side)
     with torch.cuda.graph(g):
-        for _ in range(graph_n):
+        for _ in range(n):
             run()
     g.replay()
     torch.cuda.synchronize()
@@ -77,8 +87,8 @@ def time_op(fn_for_copy, ncopies, iso=200, graph_n=200, reps=5, warm_ms=200):
         g.replay()
         e.record()
         e.synchronize()
-        per.append(s.elapsed_time(e) * 1e3 / graph_n)
-    return statistics.median(ts), statistics.median(per)
+        per.append(s.elapsed_time(e) * 1e3 / n)
+    return out[0], out[1], statistics.median(per)
 
 
 def main():
@@ -123,23 +133,23 @@ def main():
         y_bf16 = (W.double() @ x.double().flatten())
         rel_ref = float(torch.linalg.norm(y - ref) / torch.linalg.norm(ref))
         rel_bf16 = float(torch.linalg.norm(y - y_bf16) / torch.linalg.norm(y_bf16))
-        t_iso, t_str = time_op(marlin, nc)
+        t_iso, t_spin, t_str = time_op(marlin, nc)
         del qs, ss
 
         nb = max(2, -(-FOOTPRINT // (M * K * 2)))
         Ws = [W] + [W.clone() for _ in range(nb - 1)]
         yb = torch.nn.functional.linear(x, W).double().flatten()
         rel_lin = float(torch.linalg.norm(yb - y_bf16) / torch.linalg.norm(y_bf16))
-        tl_iso, tl_str = time_op(lambda i: torch.nn.functional.linear(x, Ws[i]), nb)
+        tl_iso, tl_spin, tl_str = time_op(lambda i: torch.nn.functional.linear(x, Ws[i]), nb)
         del Ws
         row = {"matrix": mid, "M": M, "K": K, "marlin_stored_bytes": stored, "marlin_copies": nc,
-               "marlin_us": t_iso, "marlin_str_us": t_str,
+               "marlin_us": t_iso, "marlin_spin_us": t_spin, "marlin_str_us": t_str,
                "marlin_gbps": (stored + 2 * K + 2 * M) / (t_iso * 1e3),
                "marlin_rel_err_vs_own_ref": rel_ref, "marlin_rel_err_vs_bf16": rel_bf16,
-               "torch_linear_bf16_us": tl_iso, "torch_linear_bf16_str_us": tl_str,
+               "torch_linear_bf16_us": tl_iso, "torch_linear_bf16_spin_us": tl_spin, "torch_linear_bf16_str_us": tl_str,
                "torch_linear_rel_err_vs_bf16": rel_lin}
         rows.append(row)
-        print(f"{mid:7s} {M:6d}x{K:5d}  marlin iso {t_iso:9.2f} us str {t_str:9.2f} us  "
+        print(f"{mid:7s} {M:6d}x{K:5d}  marlin iso {t_iso:9.2f} spin {t_spin:9.2f} str {t_str:9.2f} us  "
               f"{row['marlin_gbps']:6.1f} GB/s  err vs own ref {rel_ref:.2e}  vs bf16 {rel_bf16:.4f} | "
               f"torch linear bf16 iso {tl_iso:9.2f} us str {tl_str:9.2f} us", flush=True)
         del W, q_w, s_w, w_ref
@@ -147,7 +157,8 @@ def main():
     with open(a.out, "w") as f:
         f.write(f"# utc={datetime.datetime.now(datetime.timezone.utc):%Y-%m-%dT%H:%M:%SZ} device=\"{torch.cuda.get_device_name(0)}\" "
                 f"vllm={vllm.__version__} torch={torch.__version__} cuda={torch.version.cuda} git={git} "
-                f"image=vllm-node-qwen35:latest footprint_bytes={FOOTPRINT}\n")
+                f"image=vllm-node-qwen35:latest footprint_bytes={FOOTPRINT} "
+                f"VLLM_MARLIN_USE_ATOMIC_ADD={os.environ.get('VLLM_MARLIN_USE_ATOMIC_ADD', 'unset')}\n")
         f.write(",".join(rows[0]) + "\n")
         for r in rows:
             f.write(",".join(f"{v:.6g}" if isinstance(v, float) else str(v) for v in r.values()) + "\n")
