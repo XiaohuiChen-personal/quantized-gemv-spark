@@ -92,7 +92,7 @@ nsys)
     nsys --version >> results/nsys/env.txt
     # One final-set pass under CUDA API + kernel tracing (no GPU counters needed). The
     # trace's per-kernel durations cross-check the event timings and name cuBLAS's kernels.
-    nsys profile --trace=cuda --sample=none --cpuctxsw=none --force-overwrite=true \
+    nsys profile --trace=cuda,nvtx --sample=none --cpuctxsw=none --force-overwrite=true \
         -o results/nsys/final_pass ./build/bench --mode final --seed 9 \
         --out results/nsys/bench_under_nsys.csv > results/nsys/bench_under_nsys.log 2>&1
     nsys stats --force-export=true --report cuda_gpu_kern_sum --format csv \
