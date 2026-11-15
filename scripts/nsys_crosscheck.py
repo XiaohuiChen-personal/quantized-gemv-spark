@@ -3,9 +3,9 @@
 
 Input: the SQLite export of an `nsys profile --trace=cuda,nvtx` run of `bench`, and the
 CSV that same run wrote. For every "iso <label>" NVTX range (one per bench row), the
-kernels that ran inside it are split into launches at each spin_kernel, and each
-launch's GPU time is the sum of its kernels' durations (cuBLAS may run more than one
-kernel per call). The median per-launch time is compared with the bench's isolated
+kernels that ran inside it are split into the range's ISO launches (200 in final mode;
+cuBLAS may run more than one kernel per call, so the kernels are grouped in equal
+consecutive chunks), and each launch's GPU time is the sum of its kernels' durations. The median per-launch time is compared with the bench's isolated
 median for the same row, and the kernel names are listed (this is how the report names
 the kernels cuBLAS chose).
 
@@ -16,6 +16,9 @@ import sqlite3
 import statistics
 import sys
 from collections import Counter
+
+
+ISO = 200  # isolated launches per bench row in final mode (gemv.cuh kFinalProfile.iso)
 
 
 def main():
@@ -42,22 +45,21 @@ def main():
         key = label[4:]
         while i0 < len(kern) and kern[i0][0] < start:
             i0 += 1
-        launches, cur, names = [], [], Counter()
+        durs, names = [], Counter()
         i = i0
         while i < len(kern) and kern[i][0] <= end:
             s, e, n = kern[i]
-            if "spin_kernel" in n:
-                if cur:
-                    launches.append(cur)
-                cur = []
-            else:
-                cur.append(e - s)
+            if "spin_kernel" not in n:
+                durs.append(e - s)
                 names[n] += 1
             i += 1
-        if cur:
-            launches.append(cur)
-        if not launches or key not in bench:
+        if not durs or key not in bench:
             continue
+        if len(durs) % ISO:
+            out.append(f"| {key} | | | | {len(durs)} kernels, not a multiple of {ISO} | |")
+            continue
+        per_launch = len(durs) // ISO
+        launches = [durs[j:j + per_launch] for j in range(0, len(durs), per_launch)]
         med_ns = statistics.median(sum(l) for l in launches)
         per = statistics.median(len(l) for l in launches)
         b = float(bench[key]["iso_med_us"])
