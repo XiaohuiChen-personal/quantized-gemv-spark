@@ -14,8 +14,20 @@ checked against a CPU reference and timed on real Qwen3.5-4B weight matrices on 
 GB10 (DGX Spark), to test whether the speedups track the byte counts.
 
 Results and hypothesis verdicts: [`results/ANALYSIS.md`](results/ANALYSIS.md) (generated
-from the kept CSVs by `scripts/analyze.py`), figures in [`results/figures/`](results/figures/).
+from the kept CSVs by `scripts/analyze.py`), interpretation in
+[`results/NOTES.md`](results/NOTES.md), figures in [`results/figures/`](results/figures/).
 A guide for code reviewers is in [`REVIEW.md`](REVIEW.md).
+
+## Results at a glance
+
+Three final executions on the GB10 (median of the per-execution isolated medians):
+
+| Hypothesis | Measured | Verdict |
+| --- | --- | --- |
+| H1: the best BF16 kernel reaches ≥ 193 GB/s and ≤ 1.15 × cuBLAS on the large matrices | v2 230–238 GB/s, 0.72–0.99 × cuBLAS | confirmed |
+| H2: INT8 ≥ 1.7× and INT4 ≥ 2.6× faster than cuBLAS BF16 (MLP matrices, LM head) | INT8 2.00–2.77×, INT4 3.60–5.33× (vs my BF16 v2: 1.98–2.02× and 3.55–3.88×; byte ratios 2.00 and 3.87) | confirmed |
+| H3: relative error ≤ 2% (INT8), ≤ 15% (INT4) with a random input | INT8 0.90–1.12%, INT4 11.9–13.6% | confirmed |
+| H4 (stretch): INT4 within 1.5× of vLLM's Marlin | 0.97–0.99 × Marlin (streamed) | confirmed |
 
 ## Hardware and software
 
