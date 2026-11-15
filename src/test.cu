@@ -143,6 +143,12 @@ static std::vector<uint16_t> run(const Launch& L, const Operand& o, const bf16* 
 
 // ---------------------------------------------------------------- tests
 
+__global__ void half_decode_kernel(const uint16_t* bits, float* out)
+{
+    const int i = blockIdx.x * blockDim.x + threadIdx.x;
+    out[i] = __half2float(__ushort_as_half(bits[i]));
+}
+
 static void test_conversions()
 {
     expect(half_to_float(0x3C00) == 1.f, "half 1.0");
@@ -155,12 +161,33 @@ static void test_conversions()
     expect(float_to_bf16(1.00390625f) == 0x3F80, "bf16 tie rounds to even (down)");
     expect(float_to_bf16(1.01171875f) == 0x3F82, "bf16 tie rounds to even (up)");
     expect(float_to_bf16(-0.5f) == 0xBF00, "bf16 -0.5");
-    // The device decode must agree with the host decode on the stored FP16 scale bits.
-    for (uint16_t h : {0x0001, 0x03FF, 0x0400, 0x1C00, 0x2BFF, 0x3C00, 0x7BFF})
-        expect(std::isfinite(half_to_float(h)), "half finite");
+    // The host FP16 decode (used by the CPU reference) must agree with the device's
+    // __half2float on every finite bit pattern, subnormals included.
+    std::vector<uint16_t> bits(65536);
+    for (int i = 0; i < 65536; ++i) bits[i] = (uint16_t)i;
+    uint16_t* dbits = nullptr;
+    float* dvals = nullptr;
+    CUDA_CHECK(cudaMalloc(&dbits, 65536 * 2));
+    CUDA_CHECK(cudaMalloc(&dvals, 65536 * 4));
+    CUDA_CHECK(cudaMemcpy(dbits, bits.data(), 65536 * 2, cudaMemcpyHostToDevice));
+    half_decode_kernel<<<256, 256>>>(dbits, dvals);
+    CUDA_CHECK_LAUNCH();
+    std::vector<float> vals(65536);
+    CUDA_CHECK(cudaMemcpy(vals.data(), dvals, 65536 * 4, cudaMemcpyDeviceToHost));
+    long mismatch = 0;
+    for (int i = 0; i < 65536; ++i) {
+        const float h = half_to_float((uint16_t)i);
+        if (std::isfinite(h) && h != vals[i]) ++mismatch;
+    }
+    expect(mismatch == 0, "host FP16 decode vs device __half2float: " + std::to_string(mismatch) + " mismatches");
+    CUDA_CHECK(cudaFree(dbits));
+    CUDA_CHECK(cudaFree(dvals));
 }
 
-static const std::vector<std::pair<int, int>> kShapes = {{1, 128}, {3, 256}, {257, 384}, {2, 4096}, {64, 9216}, {1031, 2560}};
+// {50000, 128} has more row groups than a persistent grid has warps, so the grid-stride
+// loop runs several iterations (and _pers differs from _full).
+static const std::vector<std::pair<int, int>> kShapes = {{1, 128},   {3, 256},     {257, 384},  {2, 4096},
+                                                         {64, 9216}, {1031, 2560}, {50000, 128}};
 
 static void test_kernel(const KernelDef& kd, const std::map<std::pair<int, int>, Synth>& synth, cudaStream_t s)
 {
@@ -220,18 +247,34 @@ static void test_mutations(const KernelDef& kd, cudaStream_t s)
             const CheckResult c = check_output(run(kd.make(M, K), dc.ops[0], dxg.p, M, s), rg.y, rg.absdot);
             expect(c.pass, tag + " unmutated baseline");
         }
-        // 1. One weight changed by a large amount at a k with |x_k| > 0.5.
+        // 1. One weight changed, at the k with the largest |x_k| and in the row (INT8) or
+        // group (INT4) with the largest scale; the change in y must be at least 4x that
+        // element's tolerance, so detection is guaranteed rather than likely.
         int k1 = 0;
-        while (std::fabs(bf16_to_float(xg[k1])) <= 0.5f) ++k1;
+        for (int k = 1; k < K; ++k)
+            if (std::fabs(bf16_to_float(xg[k])) > std::fabs(bf16_to_float(xg[k1]))) k1 = k;
         {
             Synth m = base;
-            const int r = M / 2;
-            double rms = 0;
-            for (int k = 0; k < K; ++k) rms += (double)m.value(kd.fmt, r, k) * m.value(kd.fmt, r, k);
-            rms = std::sqrt(rms / K);
-            if (kd.fmt == Fmt::BF16) m.w[(size_t)r * K + k1] = float_to_bf16(bf16_to_float(m.w[(size_t)r * K + k1]) + 64 * (float)rms);
-            else if (kd.fmt == Fmt::INT8) { int8_t& q = m.q8[(size_t)r * K + k1]; q = (int8_t)(q >= 0 ? q - 100 : q + 100); }
-            else m.set4(r, k1, int4_at(m.q4.data() + (size_t)r * (K / 2), k1) >= 0 ? -8 : 7);
+            int r = 0;
+            for (int i = 1; i < M; ++i) {
+                const float si = kd.fmt == Fmt::INT8 ? half_to_float(m.s8[i]) : kd.fmt == Fmt::INT4 ? half_to_float(m.s4[(size_t)i * (K / 128) + k1 / 128]) : 0.f;
+                const float sr = kd.fmt == Fmt::INT8 ? half_to_float(m.s8[r]) : kd.fmt == Fmt::INT4 ? half_to_float(m.s4[(size_t)r * (K / 128) + k1 / 128]) : 0.f;
+                if (si > sr) r = i;
+            }
+            const float before = m.value(kd.fmt, r, k1);
+            if (kd.fmt == Fmt::BF16) {
+                double rms = 0;
+                for (int k = 0; k < K; ++k) rms += (double)m.value(kd.fmt, r, k) * m.value(kd.fmt, r, k);
+                m.w[(size_t)r * K + k1] = float_to_bf16(before + 64 * (float)std::sqrt(rms / K));
+            } else if (kd.fmt == Fmt::INT8) {
+                int8_t& q = m.q8[(size_t)r * K + k1];
+                q = (int8_t)(q >= 0 ? q - 127 : q + 127);
+            } else {
+                m.set4(r, k1, int4_at(m.q4.data() + (size_t)r * (K / 2), k1) >= 0 ? -8 : 7);
+            }
+            const double dy = std::fabs((double)(m.value(kd.fmt, r, k1) - before) * bf16_to_float(xg[k1]));
+            const double tol = std::ldexp(std::fabs(rg.y[r]), -8) + std::ldexp(rg.absdot[r], -14);
+            expect(dy >= 4 * tol, tag + " one-weight mutation too small to be sure of detection");
             fails(m, false, "one weight");
         }
         // 2. The last 32 weights of every row zeroed (as if the last chunk were skipped).
@@ -282,10 +325,10 @@ int main()
     FinalContext ctx{};
     CUBLAS_CHECK(cublasCreate(&ctx.blas));
     CUBLAS_CHECK(cublasLtCreate(&ctx.lt));
+    CUBLAS_CHECK(cublasSetStream(ctx.blas, s));  // before the workspace: SetStream resets it
     ctx.ws_bytes = 32u << 20;
     CUDA_CHECK(cudaMalloc(&ctx.ws, ctx.ws_bytes));
     CUBLAS_CHECK(cublasSetWorkspace(ctx.blas, ctx.ws, ctx.ws_bytes));
-    CUBLAS_CHECK(cublasSetStream(ctx.blas, s));
     CUDA_CHECK(cudaMalloc(&ctx.sink, sizeof(float)));
 
     test_conversions();
@@ -298,7 +341,7 @@ int main()
     for (KernelDef& kd : tune_set()) ks.push_back(kd);
     int n_kernels = 0;
     for (const KernelDef& kd : ks) {
-        if (!kd.checked) continue;  // read references and the load-only diagnostic
+        if (!kd.checked || !kd.fatal) continue;  // read refs, load-only diagnostic, cuBLASLt heuristics
         const int before = g_fail;
         test_kernel(kd, synth, s);
         ++n_kernels;

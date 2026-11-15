@@ -113,28 +113,39 @@ class Analysis:
         g = self.df.groupby(key)
         self.agg = g.agg(M=("M", "first"), K=("K", "first"), bytes=("bytes_counted", "first"),
                          copies=("copies", "first"), iso=("iso_med_us", "median"),
-                         cold=("cold_med_us", "median"), stream=("str_med_us", "median"),
+                         spin=("spin_med_us", "median"), stream=("str_med_us", "median"),
                          iso_min=("iso_med_us", "min"), iso_max=("iso_med_us", "max"),
                          acc_rel=("acc_rel_vs_bf16", "first"), acc_max=("acc_maxabs_vs_bf16", "first")).reset_index()
+        chk = self.df[self.df.kernel == "cublaslt"].copy()
+        chk["ok"] = (chk.check_pass == "pass") & (chk.check_rad_pass == "pass") & (chk.recheck_pass == "pass")
+        okc = chk.groupby(["matrix", "config"]).ok.all().reset_index()
+        self.lt_ok = {m: set(d[d.ok].config) for m, d in okc.groupby("matrix")}
+        self.lt_failed = okc[~okc.ok]
         self.agg["gbps"] = self.agg["bytes"] / (self.agg["iso"] * 1e3)
         self.agg["gbps_str"] = self.agg["bytes"] / (self.agg["stream"] * 1e3)
 
     # ------------------------------------------------------------ lookups
     def t(self, m, kernel, col="iso", run=None, fmt=None):
-        """Median-over-runs time (or one run's) of a ladder kernel; cublaslt = best heuristic."""
+        """Median-over-runs time (or one run's) of a ladder kernel; cublaslt = best passing heuristic."""
         if run is None:
             a = self.agg[(self.agg.matrix == m) & (self.agg.kernel == kernel)]
             if fmt:
                 a = a[a.fmt == fmt]
+            if kernel == "cublaslt":
+                a = a[a.config.isin(self.lt_ok.get(m, set()))]
             return float(a[col].min()) if len(a) else float("nan")
         d = self.df[(self.df.matrix == m) & (self.df.kernel == kernel) & (self.df.run == run)]
+        if kernel == "cublaslt":
+            d = d[d.config.isin(self.lt_ok.get(m, set()))]
         if fmt:
             d = d[d.fmt == fmt]
-        c = {"iso": "iso_med_us", "stream": "str_med_us", "cold": "cold_med_us"}[col]
+        c = {"iso": "iso_med_us", "stream": "str_med_us", "spin": "spin_med_us"}[col]
         return float(d[c].min()) if len(d) else float("nan")
 
     def row(self, m, kernel, fmt=None):
         a = self.agg[(self.agg.matrix == m) & (self.agg.kernel == kernel)]
+        if kernel == "cublaslt":  # only algorithms that met the accuracy contract in every run
+            a = a[a.config.isin(self.lt_ok.get(m, set()))]
         if fmt:
             a = a[a.fmt == fmt]
         return a.sort_values("iso").iloc[0] if len(a) else None
@@ -151,7 +162,7 @@ class Analysis:
                     f"(proposal: {PROPOSAL_REF:.0f} GB/s; rated {RATED:.0f} GB/s).", ""]
 
     def correctness(self):
-        d = self.df[self.df.check_pass != "n/a"]
+        d = self.df[(self.df.check_pass != "n/a") & (self.df.kernel != "cublaslt")]
         n = len(d)
         ok = ((d.check_pass == "pass") & (d.check_rad_pass == "pass") & (d.recheck_pass == "pass")).sum()
         notbit = d[d.bitwise_same == 0]
@@ -163,7 +174,10 @@ class Analysis:
                     f"{d.check_rel_l2.max():.2e} (limit 4e-3).",
                     f"Rows whose output after timing differed bitwise from the first run: {len(notbit)}"
                     + (" (" + ", ".join(sorted(set(notbit.kernel + ' ' + notbit.config))) + ")" if len(notbit) else "")
-                    + ". Isolated launches not covered by the spin kernel: " + str(spin_bad) + ".", ""]
+                    + ". Spin-diagnostic launches whose host enqueue outlasted the spin kernel: " + str(spin_bad) + ".", ""]
+        lf = self.lt_failed
+        self.md += [f"cuBLASLt heuristic algorithms (not counted above): {len(lf)} (matrix, algorithm) pairs failed the "
+                    "same checks and are excluded from \"cuBLASLt best\"" + (": " + ", ".join(f"{r.matrix}/{r.config}" for _, r in lf.iterrows()) if len(lf) else "") + ".", ""]
         tp = os.path.join(self.R, "tests", "test_output.txt")
         if os.path.exists(tp):
             tail = [l.strip() for l in open(tp) if l.strip()][-6:]
@@ -178,7 +192,7 @@ class Analysis:
                     continue
                 rd = self.row(m, "read", r.fmt)
                 rows.append({"matrix": m, "kernel": KLABEL[k], "fmt": r.fmt, "config": r.config,
-                             "iso_us": r.iso, "stream_us": r.stream, "cold_us": r.cold, "GB/s": r.gbps,
+                             "iso_us": r.iso, "stream_us": r.stream, "spin_us": r.spin, "GB/s": r.gbps,
                              "%241": r.gbps / PROPOSAL_REF, "%273": r.gbps / RATED,
                              "%session": r.gbps / self.session_ref,
                              "%size-matched read": r.gbps / rd.gbps if rd is not None else float("nan"),
@@ -196,7 +210,7 @@ class Analysis:
         show = t[t.matrix.isin(["gate", "down", "qkv", "z", "out", "k", "lmhead"])].copy()
         for c in ("%241", "%273", "%session", "%size-matched read", "run spread"):
             show[c] = show[c].map(lambda v: fmt_pct(v))
-        show = show.drop(columns=["config", "cold_us"])
+        show = show.drop(columns=["config", "spin_us"])
         self.md += [md_table(show, {"iso_us": "{:.2f}", "stream_us": "{:.2f}", "GB/s": "{:.1f}",
                                     "read ref GB/s": "{:.1f}"}), ""]
 
@@ -331,7 +345,7 @@ class Analysis:
 
     def small_vs_large(self):
         out = {}
-        for mode in ("iso", "cold", "stream"):
+        for mode in ("iso", "stream"):
             s47 = [self.t(m, "v2", mode) / self.t(m, "v4", mode) for m in ("gate", "up", "down")]
             s21 = [self.t(m, "v2", mode) / self.t(m, "v4", mode) for m in ("z", "out", "o")]
             s5 = [self.t(m, "v2", mode) / self.t(m, "v4", mode) for m in ("k", "v")]
@@ -349,15 +363,18 @@ class Analysis:
     def timing_modes(self):
         a = self.agg[self.agg.kernel.isin(LADDER)].copy()
         a["str/iso"] = a.stream / a.iso
-        a["cold-iso us"] = a.cold - a.iso
+        a["spin-iso us"] = a.spin - a.iso
+        a["iso-str us"] = a.iso - a.stream
         self.md += ["## 9. Timing modes", "",
-                    "Isolated (spin kernel before the start event), cold (no spin kernel: the prelim's method) and "
-                    "streamed (one CUDA graph of 200 launches) for the ladder kernels, all matrices.", "",
+                    "Isolated (events around one launch on an idle GPU: the verdict measure), spin (the same with a "
+                    "spin kernel before the start event: a diagnostic, see `results/timing_method/`) and streamed "
+                    "(whole rotation cycles in one CUDA graph) for the ladder kernels, all matrices.", "",
                     f"- streamed / isolated: median {a['str/iso'].median():.3f}, range {a['str/iso'].min():.3f}–{a['str/iso'].max():.3f}; "
                     f"for kernels under 30 µs: median {a[a.iso < 30]['str/iso'].median():.3f}; over 1 ms: "
-                    f"{a[a.iso > 1000]['str/iso'].median():.3f}.",
-                    f"- cold − isolated: median {a['cold-iso us'].median():+.2f} µs (range {a['cold-iso us'].min():+.2f} to "
-                    f"{a['cold-iso us'].max():+.2f}).", ""]
+                    f"{a[a.iso > 1000]['str/iso'].median():.3f}. Isolated − streamed: median {a['iso-str us'].median():.2f} µs "
+                    "(the per-launch cost a back-to-back stream hides).",
+                    f"- spin − isolated: median {a['spin-iso us'].median():+.2f} µs (range {a['spin-iso us'].min():+.2f} to "
+                    f"{a['spin-iso us'].max():+.2f}).", ""]
         self.modes = a
 
     def ablation(self):

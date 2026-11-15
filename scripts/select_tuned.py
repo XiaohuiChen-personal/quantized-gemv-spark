@@ -2,7 +2,7 @@
 """Pick the frozen v2/v3/v4 configurations from a tuning run (the pre-registered rule).
 
 Rule (fixed before the tuning run): for each kernel, among the configurations whose
-every correctness check passed on every tuning matrix, choose the one with the highest
+every correctness check passed on every tuning matrix (including the bitwise repeat), choose the one with the highest
 geometric-mean isolated bandwidth (gbps_iso) over the six unique hypothesis shapes
 (gate, down, qkv, z, out, lmhead). One configuration per kernel. Ties are impossible
 in practice; the first in sorted order wins.
@@ -55,7 +55,8 @@ def main():
         if missing:
             excluded.append((kernel, cfg, "missing " + ",".join(missing)))
             continue
-        bad = [s for s in SHAPES if not (per[s]["check_pass"] == per[s]["check_rad_pass"] == per[s]["recheck_pass"] == "pass")]
+        bad = [s for s in SHAPES if not (per[s]["check_pass"] == per[s]["check_rad_pass"] == per[s]["recheck_pass"] == "pass"
+                                         and str(per[s]["bitwise_same"]) == "1")]
         if bad:
             excluded.append((kernel, cfg, "failed check on " + ",".join(bad)))
             continue

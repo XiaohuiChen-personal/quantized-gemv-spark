@@ -187,10 +187,11 @@ struct FmtI4 {
     __device__ static float row_scale(const Params&, int) { return 1.f; }
 };
 
-// Diagnostic, not a rung: v4's exact loads (weights and one scale per chunk) with the
-// decode and multiply-adds replaced by one integer XOR and one add, so the loads cannot
-// be removed. Its output is meaningless; its time is what v4 would take if decoding
-// were free (a no-counter way to see whether v4 is limited by decode or by memory).
+// Diagnostic, not a rung: v4's exact loads (weights, one scale per chunk, and the four
+// 16-byte pieces of x the chunk needs) with the decode and multiply-adds replaced by
+// integer XORs and one add, so no load can be removed. Its output is meaningless; its
+// time is what v4 would take if decoding were free (a no-counter way to see whether v4
+// is limited by decode or by memory).
 struct FmtI4LoadOnly {
     using Chunk = uint4;
     static constexpr int kWeightsPerChunk = 32;
@@ -200,10 +201,17 @@ struct FmtI4LoadOnly {
         return __ldg(p.Q + (size_t)row * chunks_per_row + c);
     }
     template <bool XS>
-    __device__ static float dot(const Params& p, const Chunk& w, const bf16*, int row, int c, float acc)
+    __device__ static float dot(const Params& p, const Chunk& w, const bf16* xs, int row, int c, float acc)
     {
+        const uint4* xv = reinterpret_cast<const uint4*>(xs);
+        uint32_t h = w.x ^ w.y ^ w.z ^ w.w;
+#pragma unroll
+        for (int t = 0; t < 4; ++t) {
+            const uint4 xt = load_x<XS>(xv, 4 * c + t);
+            h ^= xt.x ^ xt.y ^ xt.z ^ xt.w;
+        }
         const float s = __half2float(__ldg(p.scale + (size_t)row * p.groups_per_row + (c >> 2)));
-        return acc + s + (float)(w.x ^ w.y ^ w.z ^ w.w);
+        return acc + s + (float)h;
     }
     __device__ static float row_scale(const Params&, int) { return 1.f; }
 };

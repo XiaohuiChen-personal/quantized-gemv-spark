@@ -8,6 +8,7 @@
 #                                  three executions, shuffled order
 #   scripts/run_stage.sh rotation  rotation sweep, frozen kernels    -> results/rotation/
 #   scripts/run_stage.sh nsys      Nsight Systems trace of one pass  -> results/nsys/
+#   scripts/run_stage.sh marlin    vLLM Marlin INT4 at batch 1 (H4)  -> results/marlin/
 #   scripts/run_stage.sh sweep     all-layer accuracy sweep (CPU)    -> results/accuracy/
 #
 # Every stage records provenance (UTC time, host, git commit, GPU state) and refuses to
@@ -17,7 +18,7 @@ set -euo pipefail
 export PATH=/usr/local/cuda/bin:$PATH
 export OMP_WAIT_POLICY=PASSIVE  # OpenMP threads must not spin during GPU timing
 cd "$(dirname "$0")/.."
-stage=${1:?usage: run_stage.sh test|tune|final|rotation|nsys|sweep}
+stage=${1:?usage: run_stage.sh test|tune|final|rotation|nsys|marlin|sweep}
 
 env_report() {
     echo "# $(date -u +%FT%TZ) host=$(hostname) git=$(git describe --always --dirty) stage=$stage"
@@ -103,6 +104,17 @@ nsys)
         > results/nsys/crosscheck.md
     rm -f results/nsys/final_pass.sqlite
     tail -5 results/nsys/crosscheck.md
+    ;;
+marlin)
+    require_quiet
+    mkdir -p results/marlin
+    env_report > results/marlin/env.txt
+    gpu_log_start results/marlin/gpu_log.csv
+    docker run --rm --gpus all --ipc=host -e GIT_DESC="$(git describe --always --dirty)" -v "$PWD":/work -w /work \
+        vllm-node-qwen35:latest python3 scripts/marlin_bench.py --out results/marlin/marlin.csv \
+        > results/marlin/marlin.log 2>&1
+    gpu_log_stop
+    grep -v -i -E 'nvidia|copyright|license|terms|rights|compatib|driver version|^=+|^$' results/marlin/marlin.log | tail -12
     ;;
 sweep)
     mkdir -p results/accuracy

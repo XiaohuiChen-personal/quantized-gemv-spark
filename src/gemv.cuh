@@ -10,6 +10,7 @@
 #include <type_traits>
 #include <vector>
 #include <cublasLt.h>
+#include <nvtx3/nvToolsExt.h>
 #include "cuda_check.h"
 #include "host_util.h"
 #include "kernels.cuh"
@@ -31,13 +32,17 @@ struct Operand {
 using Launch = std::function<void(const Operand&, const bf16* x, bf16* y, cudaStream_t)>;
 
 // A kernel in the benchmark: its ladder name, its configuration, its weight format,
-// whether its output is checked (diagnostics are not), and a factory that computes the
-// launch geometry once per shape (an empty Launch means "not available for this shape").
+// whether its output is checked (diagnostics are not), a factory that computes the
+// launch geometry once per shape (an empty Launch means "not available for this shape"),
+// and whether a failed check fails the run. My kernels and cublasGemmEx: yes. cuBLASLt's
+// heuristic algorithms: no; a failure is recorded as a finding (some add a second BF16
+// rounding) and the analysis counts only algorithms that pass.
 struct KernelDef {
     std::string name, config;
     Fmt fmt;
     bool checked;
     std::function<Launch(int M, int K)> make;
+    bool fatal = true;
 };
 
 inline int num_sms()
@@ -126,9 +131,10 @@ KernelDef def_vec(const std::string& name, Fmt fmt, bool persistent, bool checke
 inline KernelDef def_cublas(cublasHandle_t h)
 {
     return {"cublas", "GemmEx_OP_T_32F_DEFAULT", Fmt::BF16, true, [h](int M, int K) -> Launch {
-                return [=](const Operand& o, const bf16* x, bf16* y, cudaStream_t s) {
+                // The handle's stream is set once, before its workspace, by the caller:
+                // cublasSetStream resets the workspace, so it must not be called here.
+                return [=](const Operand& o, const bf16* x, bf16* y, cudaStream_t) {
                     const float alpha = 1.f, beta = 0.f;
-                    CUBLAS_CHECK(cublasSetStream(h, s));
                     CUBLAS_CHECK(cublasGemmEx(h, CUBLAS_OP_T, CUBLAS_OP_N, M, 1, K, &alpha, o.w,
                                               CUDA_R_16BF, K, x, CUDA_R_16BF, K, &beta, y,
                                               CUDA_R_16BF, M, CUBLAS_COMPUTE_32F,
@@ -155,7 +161,7 @@ struct LtPlan {
 
 inline KernelDef def_cublaslt(cublasLtHandle_t lt, int i, void* ws, size_t ws_bytes)
 {
-    return {"cublaslt", "heur" + std::to_string(i), Fmt::BF16, true,
+    KernelDef d{"cublaslt", "heur" + std::to_string(i), Fmt::BF16, true,
             [=](int M, int K) -> Launch {
                 auto plan = std::make_shared<LtPlan>();
                 CUBLAS_CHECK(cublasLtMatmulDescCreate(&plan->op, CUBLAS_COMPUTE_32F, CUDA_R_32F));
@@ -182,6 +188,8 @@ inline KernelDef def_cublaslt(cublasLtHandle_t lt, int i, void* ws, size_t ws_by
                                                 plan->c, y, plan->c, &plan->algo, ws, ws_bytes, s));
                 };
             }};
+    d.fatal = false;
+    return d;
 }
 
 // Size-matched read reference: the read-only kernel over the whole stored allocation.
@@ -266,12 +274,13 @@ constexpr Profile kTuneProfile{10, 100.0, 100, 100, 3};
 constexpr unsigned long long kSpinNs = 100000;  // 100 us: longer than any host enqueue seen
 
 struct Timing {
-    std::vector<double> iso_samples, cold_samples, str_samples;  // raw, in launch order
+    std::vector<double> iso_samples, spin_samples, str_samples;  // raw, in launch order
     double iso_med = 0, iso_p10 = 0, iso_p90 = 0, iso_min = 0;  // microseconds
-    double cold_med = 0;                                        // microseconds
+    double spin_med = 0;                                        // microseconds
     double str_med = 0, str_min = 0, str_max = 0;               // microseconds per launch
-    double host_enqueue_max_us = 0;  // longest host time to enqueue start, kernel, stop
-    bool spin_covered = true;        // host_enqueue_max_us < spin length
+    int graph_launches = 0;                                     // launches per captured graph
+    double host_enqueue_max_us = 0;  // spin diagnostic: longest host time to enqueue
+    bool spin_covered = true;        // ... and whether the spin kernel covered it
 };
 
 inline double median_of(std::vector<double> v)
@@ -289,21 +298,27 @@ inline double elapsed_us(cudaEvent_t a, cudaEvent_t b)
 }
 
 // Three measurements of one launch configuration over its rotating copies:
-//  isolated  each launch between its own pair of events, preceded by a spin kernel so the
-//            GPU is busy while the host enqueues; the events then bracket only the
-//            kernel's execution. Synchronized after each launch. Pre-registered measure.
-//  cold      the same without the spin kernel (the prelim's method): includes the host's
-//            launch latency.
-//  streamed  graph_n launches captured into one CUDA graph and replayed graph_reps
-//            times; per-launch time = replay time / graph_n (how a decode engine runs).
-// Consecutive launches always read different copies (the counter never repeats a copy
-// twice in a row because R >= 2).
+//  isolated  each launch between its own pair of events on an otherwise idle GPU,
+//            synchronized after each launch (the proposal's method; the pre-registered
+//            measure). On the GB10 this adds a fixed ~1.3-1.7 us of event overhead to
+//            the kernel's own duration (results/timing_method/).
+//  spin      the same with a spin kernel queued before the start event: a diagnostic.
+//            Meant to hide host launch latency, it instead adds ~1.3 us more and lands
+//            on a ~1 us lattice on this machine, so it is recorded but not used.
+//  streamed  whole rotation cycles (at least graph_n launches, a multiple of R)
+//            captured into one CUDA graph and replayed graph_reps times; per-launch
+//            time = replay time / launches (how a decode engine runs its kernels).
+// Consecutive launches always read different copies: the counter steps through the
+// copies in order and R >= 2; each graph replay starts where the previous one ended.
+// label names the NVTX ranges ("iso <label>", "spin <label>", "str <label>") that let an
+// Nsight Systems trace match its kernels to this measurement; free without a profiler.
 inline Timing time_launch(const Launch& L, const std::vector<Operand>& ops, const bf16* x,
-                          bf16* y, cudaStream_t s, const Profile& pr)
+                          bf16* y, cudaStream_t s, const Profile& pr, const std::string& label = "")
 {
     using clk = std::chrono::steady_clock;
+    const size_t R = ops.size();
     size_t next = 1;  // copy 0 was just read by the correctness run
-    auto run = [&] { L(ops[next++ % ops.size()], x, y, s); };
+    auto run = [&] { L(ops[next++ % R], x, y, s); };
     cudaEvent_t e0, e1;
     CUDA_CHECK(cudaEventCreate(&e0));
     CUDA_CHECK(cudaEventCreate(&e1));
@@ -318,7 +333,18 @@ inline Timing time_launch(const Launch& L, const std::vector<Operand>& ops, cons
     CUDA_CHECK(cudaStreamSynchronize(s));
 
     Timing out;
-    std::vector<double> t, cold;
+    std::vector<double> t, sp;
+    nvtxRangePushA(("iso " + label).c_str());
+    for (int i = 0; i < pr.iso; ++i) {
+        CUDA_CHECK(cudaEventRecord(e0, s));
+        run();
+        CUDA_CHECK(cudaEventRecord(e1, s));
+        CUDA_CHECK(cudaEventSynchronize(e1));
+        CUDA_CHECK_LAUNCH();
+        t.push_back(elapsed_us(e0, e1));
+    }
+    nvtxRangePop();
+    nvtxRangePushA(("spin " + label).c_str());
     for (int i = 0; i < pr.iso; ++i) {
         spin_kernel<<<1, 1, 0, s>>>(kSpinNs);
         const auto h0 = clk::now();
@@ -329,44 +355,41 @@ inline Timing time_launch(const Launch& L, const std::vector<Operand>& ops, cons
         out.host_enqueue_max_us = std::max(out.host_enqueue_max_us, host_us);
         CUDA_CHECK(cudaEventSynchronize(e1));
         CUDA_CHECK_LAUNCH();
-        t.push_back(elapsed_us(e0, e1));
+        sp.push_back(elapsed_us(e0, e1));
     }
+    nvtxRangePop();
     out.spin_covered = out.host_enqueue_max_us < kSpinNs / 1e3;
-    for (int i = 0; i < pr.iso; ++i) {
-        CUDA_CHECK(cudaEventRecord(e0, s));
-        run();
-        CUDA_CHECK(cudaEventRecord(e1, s));
-        CUDA_CHECK(cudaEventSynchronize(e1));
-        CUDA_CHECK_LAUNCH();
-        cold.push_back(elapsed_us(e0, e1));
-    }
     std::vector<double> ts = t;
     std::sort(ts.begin(), ts.end());
     out.iso_med = median_of(t);
     out.iso_p10 = ts[ts.size() / 10];
     out.iso_p90 = ts[ts.size() * 9 / 10];
     out.iso_min = ts.front();
-    out.cold_med = median_of(cold);
+    out.spin_med = median_of(sp);
     out.iso_samples = t;
-    out.cold_samples = cold;
+    out.spin_samples = sp;
 
+    const size_t n = (pr.graph_n + R - 1) / R * R;  // whole rotation cycles
+    out.graph_launches = (int)n;
     cudaGraph_t g;
     cudaGraphExec_t ge;
     CUDA_CHECK(cudaStreamBeginCapture(s, cudaStreamCaptureModeThreadLocal));
-    for (int i = 0; i < pr.graph_n; ++i) run();
+    for (size_t i = 0; i < n; ++i) run();
     CUDA_CHECK(cudaStreamEndCapture(s, &g));
     CUDA_CHECK_LAUNCH();
     CUDA_CHECK(cudaGraphInstantiate(&ge, g, 0));
     CUDA_CHECK(cudaGraphLaunch(ge, s));  // warm-up replay
     CUDA_CHECK(cudaStreamSynchronize(s));
     std::vector<double> per;
+    nvtxRangePushA(("str " + label).c_str());
     for (int r = 0; r < pr.graph_reps; ++r) {
         CUDA_CHECK(cudaEventRecord(e0, s));
         CUDA_CHECK(cudaGraphLaunch(ge, s));
         CUDA_CHECK(cudaEventRecord(e1, s));
         CUDA_CHECK(cudaEventSynchronize(e1));
-        per.push_back(elapsed_us(e0, e1) / pr.graph_n);
+        per.push_back(elapsed_us(e0, e1) / n);
     }
+    nvtxRangePop();
     out.str_samples = per;
     out.str_med = median_of(per);
     out.str_min = *std::min_element(per.begin(), per.end());
@@ -401,7 +424,8 @@ inline CheckResult check_output(const std::vector<uint16_t>& y, const std::vecto
         const double tol = std::ldexp(std::fabs(ref[i]), -8) + std::ldexp(absdot[i], -14);
         const double ratio = tol > 0 ? d / tol : (d > 0 ? INFINITY : 0);
         if (!(d <= tol)) ++c.n_bad;  // also catches NaN
-        if (!(ratio <= c.worst_ratio)) c.worst_ratio = ratio;  // NaN propagates
+        if (std::isnan(ratio) || (!std::isnan(c.worst_ratio) && ratio > c.worst_ratio))
+            c.worst_ratio = ratio;  // a NaN, once seen, stays
         num += d * d;
         den += ref[i] * ref[i];
     }

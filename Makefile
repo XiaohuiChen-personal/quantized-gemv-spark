@@ -6,7 +6,7 @@
 #   make bench      one final-mode benchmark run into results/dev/ (development)
 #   make clean
 #
-# The full measurement pipeline (tuning, final sweeps, analysis) is scripts/run_all.sh.
+# The full measurement pipeline (tuning, final sweeps, analysis) is scripts/run_stage.sh.
 # ARCH defaults to the GPU in this machine; on a machine without one, pass e.g.
 # ARCH=-arch=sm_121.
 

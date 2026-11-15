@@ -1,6 +1,7 @@
 // CPU reference GEMV in double precision, and an independent check of the quantized
 // data written by scripts/quantize.py.
 #pragma once
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -114,7 +115,10 @@ QuantCheck check_quant(int M, int K, const uint16_t* W, int qmax, int group, QAt
                         continue;
                     }
                     const double e = std::fabs((double)w - (double)q * s) / s;
-                    if (e > 0.5 * (1.0 + 1.0 / 1024)) ++local.violations;
+                    // A code clipped to +-q_max (|w| beyond q_max * s, possible only when
+                    // the FP16 scale rounded below max|w| / q_max) is allowed a larger error.
+                    const bool clipped = (q == qmax || q == -qmax) && std::fabs(w) > qmax * s;
+                    if (e > 0.5 * (1.0 + 1.0 / 1024) && !clipped) ++local.violations;
                     if (e > local.max_err_over_scale) local.max_err_over_scale = e;
                 }
             }

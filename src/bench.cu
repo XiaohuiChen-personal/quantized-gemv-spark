@@ -1,6 +1,6 @@
 // Benchmark driver: for every matrix in data/manifest.tsv and every kernel of the chosen
 // mode, check the output against the CPU reference (Gaussian x and +-1 x), then time it
-// (isolated, cold, streamed) with rotating device copies. Writes one CSV row per
+// (isolated, spin diagnostic, streamed) with rotating device copies. Writes one CSV row per
 // (matrix, kernel) and, in final mode, an accuracy CSV of the CPU-only quantization error.
 //
 //   bench --mode final|tune|quick|rotation [--data data] [--out results/run.csv]
@@ -165,13 +165,14 @@ int main(int argc, char** argv)
     CUBLAS_CHECK(cublasCreate(&ctx.blas));
     CUBLAS_CHECK(cublasLtCreate(&ctx.lt));
     CUBLAS_CHECK(cublasGetVersion(ctx.blas, &cublas_ver));
-    // A fixed workspace so cuBLAS never allocates during graph capture.
+    cudaStream_t s;
+    CUDA_CHECK(cudaStreamCreateWithFlags(&s, cudaStreamNonBlocking));
+    // Stream first, then a fixed workspace (cublasSetStream resets the workspace), so
+    // cuBLAS never allocates during graph capture.
+    CUBLAS_CHECK(cublasSetStream(ctx.blas, s));
     ctx.ws_bytes = 32u << 20;
     CUDA_CHECK(cudaMalloc(&ctx.ws, ctx.ws_bytes));
     CUBLAS_CHECK(cublasSetWorkspace(ctx.blas, ctx.ws, ctx.ws_bytes));
-    cudaStream_t s;
-    CUDA_CHECK(cudaStreamCreateWithFlags(&s, cudaStreamNonBlocking));
-    CUBLAS_CHECK(cublasSetStream(ctx.blas, s));
     CUDA_CHECK(cudaMalloc(&ctx.sink, sizeof(float)));
 
     char host[256] = "?";
@@ -208,7 +209,7 @@ int main(int argc, char** argv)
     fprintf(csv, "%s\n", prov);
     fprintf(csv,
             "matrix,M,K,fmt,kernel,config,copies,bytes_counted,iso_med_us,iso_p10_us,iso_p90_us,"
-            "iso_min_us,cold_med_us,str_med_us,str_min_us,str_max_us,gbps_iso,gbps_str,"
+            "iso_min_us,spin_med_us,str_med_us,str_min_us,str_max_us,graph_launches,gbps_iso,gbps_str,"
             "host_enqueue_max_us,spin_covered,check_pass,check_rel_l2,check_worst_ratio,"
             "check_rad_pass,check_rad_rel_l2,recheck_pass,bitwise_same,acc_rel_vs_bf16,"
             "acc_maxabs_vs_bf16\n");
@@ -220,6 +221,10 @@ int main(int argc, char** argv)
     }
 
     FILE* scsv = samples_path.empty() ? nullptr : fopen(samples_path.c_str(), "w");
+    if (!samples_path.empty() && !scsv) {
+        fprintf(stderr, "cannot write %s\n", samples_path.c_str());
+        return EXIT_FAILURE;
+    }
     if (scsv) fprintf(scsv, "%s\nmatrix,fmt,kernel,config,copies,mode,i,us\n", prov);
     bool all_pass = true;
     long n_rows = 0;
@@ -316,27 +321,34 @@ int main(int argc, char** argv)
                         c0 = check_output(y0, ref[f].y, ref[f].absdot);
                         error_vs(y0, ref[Fmt::BF16].y, acc_rel, acc_max);
                     }
-                    const Timing t = time_launch(L, dc.ops, dx, dy, s, prof);
+                    const Timing t = time_launch(L, dc.ops, dx, dy, s, prof,
+                                                 mi.id + " " + fmt_name(f) + " " + kd.name + " " + kd.config + " x" +
+                                                     std::to_string(dc.ops.size()));
                     bool same = true;
                     if (kd.checked) {  // the last timed launch wrote y; it must still be right
                         std::vector<uint16_t> y1(M);
                         CUDA_CHECK(cudaMemcpy(y1.data(), dy, (size_t)M * 2, cudaMemcpyDeviceToHost));
                         c1 = check_output(y1, ref[f].y, ref[f].absdot);
                         same = std::memcmp(y0.data(), y1.data(), (size_t)M * 2) == 0;
-                        if (!c0.pass || !cr.pass || !c1.pass) all_pass = false;
+                        if (kd.fatal && (!c0.pass || !cr.pass || !c1.pass || !same)) all_pass = false;
                     }
                     const double gi = counted / (t.iso_med * 1e3), gs = counted / (t.str_med * 1e3);
-                    auto pf = [&](const CheckResult& c) { return kd.checked ? (c.pass ? "pass" : "FAIL") : "n/a"; };
+                    // Check and accuracy columns: empty for unchecked diagnostics (read, v4load).
+                    char chk[256] = ",,,,,,,,";
+                    if (kd.checked)
+                        snprintf(chk, sizeof chk, "%s,%.3e,%.3f,%s,%.3e,%s,%d,%.6e,%.6e", c0.pass ? "pass" : "FAIL",
+                                 c0.rel_l2, c0.worst_ratio, cr.pass ? "pass" : "FAIL", cr.rel_l2,
+                                 c1.pass ? "pass" : "FAIL", (int)same, acc_rel, acc_max);
                     fprintf(csv,
-                            "%s,%d,%d,%s,%s,%s,%zu,%zu,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.2f,%.2f,"
-                            "%.1f,%d,%s,%.3e,%.3f,%s,%.3e,%s,%d,%.6e,%.6e\n",
+                            "%s,%d,%d,%s,%s,%s,%zu,%zu,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%d,%.2f,%.2f,"
+                            "%.1f,%d,%s\n",
                             mi.id.c_str(), M, K, fmt_name(f), kd.name.c_str(), kd.config.c_str(), dc.ops.size(),
-                            counted, t.iso_med, t.iso_p10, t.iso_p90, t.iso_min, t.cold_med, t.str_med,
-                            t.str_min, t.str_max, gi, gs, t.host_enqueue_max_us, (int)t.spin_covered, pf(c0),
-                            c0.rel_l2, c0.worst_ratio, pf(cr), cr.rel_l2, pf(c1), (int)same, acc_rel, acc_max);
+                            counted, t.iso_med, t.iso_p10, t.iso_p90, t.iso_min, t.spin_med, t.str_med,
+                            t.str_min, t.str_max, t.graph_launches, gi, gs, t.host_enqueue_max_us,
+                            (int)t.spin_covered, chk);
                     fflush(csv);
                     if (scsv) {
-                        for (auto [mname, v] : {std::pair{"iso", &t.iso_samples}, std::pair{"cold", &t.cold_samples},
+                        for (auto [mname, v] : {std::pair{"iso", &t.iso_samples}, std::pair{"spin", &t.spin_samples},
                                                 std::pair{"str", &t.str_samples}})
                             for (size_t i = 0; i < v->size(); ++i)
                                 fprintf(scsv, "%s,%s,%s,%s,%zu,%s,%zu,%.3f\n", mi.id.c_str(), fmt_name(f),
@@ -344,10 +356,10 @@ int main(int argc, char** argv)
                         fflush(scsv);
                     }
                     ++n_rows;
-                    const bool ok = !kd.checked || (c0.pass && cr.pass && c1.pass);
-                    printf("  %-8s %-4s %-28s x%-3zu iso %9.2f us %6.1f GB/s | cold %9.2f | str %9.2f us %6.1f GB/s | %s%s%s\n",
+                    const bool ok = !kd.checked || (c0.pass && cr.pass && c1.pass && same);
+                    printf("  %-8s %-4s %-28s x%-3zu iso %9.2f us %6.1f GB/s | spin %9.2f | str %9.2f us %6.1f GB/s | %s%s%s\n",
                            kd.name.c_str(), fmt_name(f), kd.config.c_str(), dc.ops.size(), t.iso_med, gi,
-                           t.cold_med, t.str_med, gs, kd.checked ? (ok ? "pass" : "FAIL") : "n/a",
+                           t.spin_med, t.str_med, gs, kd.checked ? (ok ? "pass" : (kd.fatal ? "FAIL" : "FAIL (recorded, not fatal)")) : "n/a",
                            same ? "" : " (not bitwise repeatable)", t.spin_covered ? "" : " (spin too short)");
                     fflush(stdout);
                 }
