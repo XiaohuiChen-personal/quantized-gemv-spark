@@ -1,0 +1,349 @@
+# utc=2026-11-15T05:54:31Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=96a367a mode=final seed=9 profile=warmup20+200ms_iso200_graph200x5 spin_ns=100000
+
+== gate  model.language_model.layers.0.mlp.gate_proj.weight  M=9216 K=2560
+  quant int8: cpu rel err 8.7903e-03 (predicted 8.8199e-03), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  quant int4: cpu rel err 1.1897e-01 (predicted 1.1830e-01), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  v4       int4 t128_r1_u2_xg_full           x67  iso     56.29 us  216.5 GB/s | spin     56.06 | str     54.14 us  225.2 GB/s | pass
+  v4load   int4 t128_r1_u2_xg_full           x67  iso     56.43 us  216.0 GB/s | spin     56.10 | str     52.55 us  231.9 GB/s | n/a
+  read     int4 t256_g768                    x67  iso     55.26 us  220.1 GB/s | spin     55.01 | str     51.37 us  236.8 GB/s | n/a
+  v2abl    bf16 t128_r1_u1_xs_full           x18  iso    205.74 us  229.5 GB/s | spin    204.64 | str    200.82 us  235.1 GB/s | pass
+  read     bf16 t256_g768                    x18  iso    201.62 us  234.0 GB/s | spin    201.39 | str    196.39 us  240.3 GB/s | n/a
+  v2abl    bf16 t128_r1_u2_xg_full           x18  iso    204.86 us  230.4 GB/s | spin    204.61 | str    199.67 us  236.4 GB/s | pass
+  cublaslt bf16 heur1                        x18  iso    205.02 us  230.3 GB/s | spin    202.59 | str    199.35 us  236.8 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld8       x18  iso    204.96 us  230.3 GB/s | spin    205.49 | str    201.39 us  234.4 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_pers           x18  iso    204.82 us  230.5 GB/s | spin    204.59 | str    200.84 us  235.1 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x18  iso    206.86 us  228.2 GB/s | spin    217.09 | str    200.72 us  235.2 GB/s | pass
+  cublaslt bf16 heur2                        x18  iso    210.94 us  223.8 GB/s | spin    207.68 | str    205.30 us  230.0 GB/s | pass
+  v1       bf16 t256                         x18  iso    210.06 us  224.7 GB/s | spin    209.76 | str    206.56 us  228.6 GB/s | pass
+  cublaslt bf16 heur0                        x18  iso    283.44 us  166.6 GB/s | spin    281.41 | str    278.21 us  169.7 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x18  iso    283.68 us  166.4 GB/s | spin    280.42 | str    277.82 us  169.9 GB/s | pass
+  v2abl    bf16 t256_r1_u1_xg_full           x18  iso    205.52 us  229.7 GB/s | spin    204.61 | str    200.73 us  235.2 GB/s | pass
+  cublaslt bf16 heur6                        x18  iso    289.79 us  162.9 GB/s | spin    288.61 | str    271.40 us  173.9 GB/s | pass
+  v0       bf16 t256                         x18  iso    452.10 us  104.4 GB/s | spin    452.42 | str    451.24 us  104.6 GB/s | pass
+  cublaslt bf16 heur7                        x18  iso    401.31 us  117.6 GB/s | spin    399.17 | str    395.81 us  119.3 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld4       x18  iso    208.86 us  226.0 GB/s | spin    207.68 | str    204.26 us  231.1 GB/s | pass
+  cublaslt bf16 heur5                        x18  iso    218.08 us  216.5 GB/s | spin    214.88 | str    209.84 us  225.0 GB/s | pass
+  v2abl    bf16 t128_r2_u1_xg_full           x18  iso    205.92 us  229.3 GB/s | spin    205.57 | str    201.80 us  233.9 GB/s | pass
+  cublaslt bf16 heur4                        x18  iso    215.97 us  218.6 GB/s | spin    213.89 | str    208.48 us  226.5 GB/s | FAIL (recorded, not fatal)
+  v2abl    bf16 t128_r4_u1_xg_full           x18  iso    206.03 us  229.1 GB/s | spin    206.56 | str    202.80 us  232.8 GB/s | pass
+  v2abl    bf16 t128_r1_u4_xg_full           x18  iso    206.94 us  228.1 GB/s | spin    204.64 | str    202.45 us  233.2 GB/s | pass
+  cublaslt bf16 heur3                        x18  iso    327.78 us  144.0 GB/s | spin    326.46 | str    323.45 us  146.0 GB/s | pass
+  read     int8 t256_g768                    x35  iso    103.38 us  228.4 GB/s | spin    103.23 | str     99.32 us  237.7 GB/s | n/a
+  v3       int8 t128_r1_u4_xg_full           x35  iso    104.30 us  226.6 GB/s | spin    103.26 | str    100.85 us  234.3 GB/s | pass
+
+== up  model.language_model.layers.0.mlp.up_proj.weight  M=9216 K=2560
+  quant int8: cpu rel err 8.9065e-03 (predicted 8.7091e-03), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  quant int4: cpu rel err 1.2106e-01 (predicted 1.1826e-01), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  v4       int4 t128_r1_u2_xg_full           x67  iso     57.34 us  212.6 GB/s | spin     56.18 | str     54.82 us  222.3 GB/s | pass
+  v4load   int4 t128_r1_u2_xg_full           x67  iso     56.48 us  215.8 GB/s | spin     56.16 | str     53.20 us  229.1 GB/s | n/a
+  read     int4 t256_g768                    x67  iso     55.49 us  219.2 GB/s | spin     55.14 | str     52.01 us  233.9 GB/s | n/a
+  v2abl    bf16 t128_r1_u1_xs_full           x18  iso    206.72 us  228.4 GB/s | spin    215.84 | str    208.41 us  226.5 GB/s | pass
+  read     bf16 t256_g768                    x18  iso    202.56 us  232.9 GB/s | spin    203.10 | str    198.15 us  238.1 GB/s | n/a
+  v2abl    bf16 t128_r1_u2_xg_full           x18  iso    205.81 us  229.4 GB/s | spin    204.67 | str    202.61 us  233.0 GB/s | pass
+  cublaslt bf16 heur1                        x18  iso    206.42 us  228.7 GB/s | spin    204.64 | str    199.27 us  236.9 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld8       x18  iso    206.00 us  229.2 GB/s | spin    205.63 | str    201.25 us  234.6 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_pers           x18  iso    206.77 us  228.3 GB/s | spin    205.66 | str    201.04 us  234.8 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x18  iso    204.85 us  230.5 GB/s | spin    204.61 | str    207.19 us  227.9 GB/s | pass
+  cublaslt bf16 heur2                        x18  iso    210.82 us  223.9 GB/s | spin    207.71 | str    203.87 us  231.6 GB/s | pass
+  v1       bf16 t256                         x18  iso    219.86 us  214.7 GB/s | spin    225.46 | str    206.75 us  228.3 GB/s | pass
+  cublaslt bf16 heur0                        x18  iso    282.82 us  166.9 GB/s | spin    280.54 | str    293.35 us  160.9 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x18  iso    283.71 us  166.4 GB/s | spin    280.42 | str    278.00 us  169.8 GB/s | pass
+  v2abl    bf16 t256_r1_u1_xg_full           x18  iso    206.85 us  228.2 GB/s | spin    204.64 | str    208.65 us  226.3 GB/s | pass
+  cublaslt bf16 heur6                        x18  iso    289.86 us  162.9 GB/s | spin    286.59 | str    276.37 us  170.8 GB/s | pass
+  v0       bf16 t256                         x18  iso    451.79 us  104.5 GB/s | spin    450.40 | str    450.16 us  104.9 GB/s | pass
+  cublaslt bf16 heur7                        x18  iso    400.42 us  117.9 GB/s | spin    488.34 | str    395.77 us  119.3 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld4       x18  iso    213.95 us  220.7 GB/s | spin    213.06 | str    203.83 us  231.6 GB/s | pass
+  cublaslt bf16 heur5                        x18  iso    218.10 us  216.5 GB/s | spin    215.87 | str    227.11 us  207.9 GB/s | pass
+  v2abl    bf16 t128_r2_u1_xg_full           x18  iso    205.81 us  229.4 GB/s | spin    205.60 | str    201.38 us  234.4 GB/s | pass
+  cublaslt bf16 heur4                        x18  iso    216.16 us  218.4 GB/s | spin    213.82 | str    228.39 us  206.7 GB/s | FAIL (recorded, not fatal)
+  v2abl    bf16 t128_r4_u1_xg_full           x18  iso    205.92 us  229.3 GB/s | spin    206.62 | str    202.23 us  233.4 GB/s | pass
+  v2abl    bf16 t128_r1_u4_xg_full           x18  iso    208.82 us  226.1 GB/s | spin    214.11 | str    205.32 us  229.9 GB/s | pass
+  cublaslt bf16 heur3                        x18  iso    328.72 us  143.6 GB/s | spin    326.50 | str    323.95 us  145.7 GB/s | pass
+  read     int8 t256_g768                    x35  iso    103.39 us  228.4 GB/s | spin    102.24 | str     98.65 us  239.3 GB/s | n/a
+  v3       int8 t128_r1_u4_xg_full           x35  iso    103.52 us  228.3 GB/s | spin    103.23 | str    100.84 us  234.4 GB/s | pass
+
+== down  model.language_model.layers.0.mlp.down_proj.weight  M=2560 K=9216
+  quant int8: cpu rel err 1.0130e-02 (predicted 1.0252e-02), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  quant int4: cpu rel err 1.2125e-01 (predicted 1.1979e-01), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  v4       int4 t128_r1_u2_xg_full           x67  iso     65.18 us  187.0 GB/s | spin     63.54 | str     60.22 us  202.4 GB/s | pass
+  v4load   int4 t128_r1_u2_xg_full           x67  iso     58.51 us  208.3 GB/s | spin     59.09 | str     55.12 us  221.1 GB/s | n/a
+  read     int4 t256_g768                    x67  iso     55.46 us  219.4 GB/s | spin     55.14 | str     53.55 us  227.2 GB/s | n/a
+  v2abl    bf16 t128_r1_u1_xs_full           x18  iso    207.82 us  227.2 GB/s | spin    207.71 | str    202.68 us  232.9 GB/s | pass
+  read     bf16 t256_g768                    x18  iso    202.91 us  232.5 GB/s | spin    202.59 | str    198.14 us  238.2 GB/s | n/a
+  v2abl    bf16 t128_r1_u2_xg_full           x18  iso    208.03 us  226.9 GB/s | spin    207.63 | str    202.54 us  233.1 GB/s | pass
+  cublaslt bf16 heur1                        x18  iso    295.06 us  160.0 GB/s | spin    292.70 | str    287.51 us  164.2 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld8       x18  iso    206.99 us  228.1 GB/s | spin    206.59 | str    201.48 us  234.3 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_pers           x18  iso    207.79 us  227.2 GB/s | spin    208.70 | str    202.11 us  233.6 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x18  iso    206.98 us  228.1 GB/s | spin    206.67 | str    201.41 us  234.4 GB/s | pass
+  cublaslt bf16 heur2                        x18  iso    216.06 us  218.5 GB/s | spin    213.86 | str    206.98 us  228.1 GB/s | pass
+  v1       bf16 t256                         x18  iso    215.07 us  219.5 GB/s | spin    214.75 | str    210.28 us  224.5 GB/s | pass
+  cublaslt bf16 heur0                        x18  iso    209.70 us  225.1 GB/s | spin    207.71 | str    203.34 us  232.2 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x18  iso    210.08 us  224.7 GB/s | spin    207.74 | str    203.37 us  232.1 GB/s | pass
+  v2abl    bf16 t256_r1_u1_xg_full           x18  iso    206.93 us  228.1 GB/s | spin    206.69 | str    212.53 us  222.1 GB/s | pass
+  cublaslt bf16 heur6                        x18  iso    223.39 us  211.3 GB/s | spin    220.02 | str    213.75 us  220.9 GB/s | pass
+  v0       bf16 t256                         x18  iso    988.40 us   47.8 GB/s | spin    988.91 | str    992.15 us   47.6 GB/s | pass
+  cublaslt bf16 heur7                        x18  iso    226.85 us  208.1 GB/s | spin    225.12 | str    217.08 us  217.5 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld4       x18  iso    216.05 us  218.5 GB/s | spin    213.79 | str    210.69 us  224.1 GB/s | pass
+  cublaslt bf16 heur5                        x18  iso    214.72 us  219.9 GB/s | spin    210.30 | str    207.96 us  227.0 GB/s | pass
+  v2abl    bf16 t128_r2_u1_xg_full           x18  iso    209.22 us  225.6 GB/s | spin    206.72 | str    204.01 us  231.4 GB/s | pass
+  cublaslt bf16 heur4                        x18  iso    313.39 us  150.6 GB/s | spin    311.17 | str    311.67 us  151.5 GB/s | pass
+  v2abl    bf16 t128_r4_u1_xg_full           x18  iso    205.95 us  229.2 GB/s | spin    206.66 | str    210.47 us  224.3 GB/s | pass
+  v2abl    bf16 t128_r1_u4_xg_full           x18  iso    210.03 us  224.8 GB/s | spin    207.74 | str    204.67 us  230.7 GB/s | pass
+  cublaslt bf16 heur3                        x18  iso    225.09 us  209.7 GB/s | spin    218.94 | str    217.31 us  217.2 GB/s | FAIL (recorded, not fatal)
+  read     int8 t256_g768                    x35  iso    103.55 us  227.9 GB/s | spin    103.23 | str     99.19 us  237.9 GB/s | n/a
+  v3       int8 t128_r1_u4_xg_full           x35  iso    105.57 us  223.8 GB/s | spin    105.31 | str    101.99 us  231.6 GB/s | pass
+
+== qkv  model.language_model.layers.0.linear_attn.in_proj_qkv.weight  M=8192 K=2560
+  quant int8: cpu rel err 1.1072e-02 (predicted 1.0806e-02), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  quant int4: cpu rel err 1.2919e-01 (predicted 1.2617e-01), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  v4       int4 t128_r1_u2_xg_full           x75  iso     51.01 us  212.4 GB/s | spin     50.08 | str     48.93 us  221.4 GB/s | pass
+  v4load   int4 t128_r1_u2_xg_full           x75  iso     50.30 us  215.4 GB/s | spin     50.02 | str     48.69 us  222.5 GB/s | n/a
+  read     int4 t256_g768                    x75  iso     49.28 us  219.4 GB/s | spin     48.99 | str     46.14 us  234.3 GB/s | n/a
+  v2abl    bf16 t128_r1_u1_xs_full           x20  iso    184.35 us  227.6 GB/s | spin    185.10 | str    186.01 us  225.6 GB/s | pass
+  read     bf16 t256_g768                    x20  iso    180.30 us  232.6 GB/s | spin    180.06 | str    176.33 us  237.9 GB/s | n/a
+  v2abl    bf16 t128_r1_u2_xg_full           x20  iso    183.41 us  228.8 GB/s | spin    183.14 | str    179.46 us  233.8 GB/s | pass
+  cublaslt bf16 heur1                        x20  iso    184.32 us  227.7 GB/s | spin    182.14 | str    178.06 us  235.7 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld8       x20  iso    183.49 us  228.7 GB/s | spin    183.14 | str    179.43 us  233.9 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_pers           x20  iso    183.36 us  228.9 GB/s | spin    183.14 | str    179.19 us  234.2 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x20  iso    183.26 us  229.0 GB/s | spin    182.14 | str    178.84 us  234.6 GB/s | pass
+  cublaslt bf16 heur2                        x20  iso    192.64 us  217.8 GB/s | spin    190.40 | str    184.98 us  226.9 GB/s | FAIL (recorded, not fatal)
+  v1       bf16 t256                         x20  iso    188.34 us  222.8 GB/s | spin    188.26 | str    184.26 us  227.7 GB/s | pass
+  cublaslt bf16 heur0                        x20  iso    253.09 us  165.8 GB/s | spin    251.74 | str    247.43 us  169.6 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x20  iso    254.05 us  165.2 GB/s | spin    251.74 | str    247.68 us  169.4 GB/s | pass
+  v2abl    bf16 t256_r1_u1_xg_full           x20  iso    183.18 us  229.1 GB/s | spin    183.14 | str    178.85 us  234.6 GB/s | pass
+  cublaslt bf16 heur6                        x20  iso    259.07 us  162.0 GB/s | spin    280.46 | str    241.64 us  173.7 GB/s | pass
+  v0       bf16 t256                         x20  iso    424.94 us   98.8 GB/s | spin    424.37 | str    420.84 us   99.7 GB/s | pass
+  cublaslt bf16 heur7                        x20  iso    359.42 us  116.8 GB/s | spin    356.35 | str    354.39 us  118.4 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld4       x20  iso    185.47 us  226.3 GB/s | spin    186.24 | str    182.03 us  230.5 GB/s | pass
+  cublaslt bf16 heur5                        x20  iso    292.86 us  143.3 GB/s | spin    290.66 | str    303.81 us  138.1 GB/s | pass
+  v2abl    bf16 t128_r2_u1_xg_full           x20  iso    183.42 us  228.8 GB/s | spin    183.14 | str    179.96 us  233.2 GB/s | pass
+  cublaslt bf16 heur4                        x20  iso    198.30 us  211.6 GB/s | spin    193.38 | str    187.47 us  223.9 GB/s | pass
+  v2abl    bf16 t128_r4_u1_xg_full           x20  iso    184.96 us  226.9 GB/s | spin    184.16 | str    192.31 us  218.2 GB/s | pass
+  v2abl    bf16 t128_r1_u4_xg_full           x20  iso    184.24 us  227.8 GB/s | spin    183.14 | str    180.23 us  232.8 GB/s | pass
+  cublaslt bf16 heur3                        x20  iso    188.48 us  222.6 GB/s | spin    186.24 | str    195.93 us  214.2 GB/s | pass
+  read     int8 t256_g768                    x39  iso     92.22 us  227.6 GB/s | spin     92.00 | str     87.84 us  238.9 GB/s | n/a
+  v3       int8 t128_r1_u4_xg_full           x39  iso     95.09 us  220.9 GB/s | spin     97.39 | str     91.03 us  230.8 GB/s | pass
+
+== z  model.language_model.layers.0.linear_attn.in_proj_z.weight  M=4096 K=2560
+  quant int8: cpu rel err 1.0692e-02 (predicted 1.0714e-02), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  quant int4: cpu rel err 1.2523e-01 (predicted 1.2569e-01), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  v4       int4 t128_r1_u2_xg_full           x149 iso     28.72 us  188.7 GB/s | spin     28.48 | str     28.71 us  188.8 GB/s | pass
+  v4load   int4 t128_r1_u2_xg_full           x149 iso     27.95 us  193.9 GB/s | spin     27.49 | str     24.83 us  218.3 GB/s | n/a
+  read     int4 t256_g768                    x149 iso     26.72 us  202.3 GB/s | spin     26.43 | str     24.11 us  224.3 GB/s | n/a
+  v2abl    bf16 t128_r1_u1_xs_full           x39  iso     95.14 us  220.6 GB/s | spin     93.98 | str     90.16 us  232.7 GB/s | pass
+  read     bf16 t256_g768                    x39  iso     97.55 us  215.0 GB/s | spin    105.36 | str     92.50 us  226.7 GB/s | n/a
+  v2abl    bf16 t128_r1_u2_xg_full           x39  iso     93.92 us  223.4 GB/s | spin     93.14 | str     90.50 us  231.9 GB/s | pass
+  cublaslt bf16 heur1                        x39  iso     96.91 us  216.5 GB/s | spin     94.05 | str     90.50 us  231.9 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld8       x39  iso     93.41 us  224.7 GB/s | spin     93.10 | str     90.16 us  232.8 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_pers           x39  iso     96.18 us  218.2 GB/s | spin     98.00 | str     91.83 us  228.5 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x39  iso     94.24 us  222.7 GB/s | spin     94.02 | str     93.56 us  224.3 GB/s | pass
+  cublaslt bf16 heur2                        x39  iso    101.52 us  206.7 GB/s | spin     99.14 | str     94.58 us  221.9 GB/s | pass
+  v1       bf16 t256                         x39  iso     97.22 us  215.9 GB/s | spin     96.14 | str     93.40 us  224.7 GB/s | pass
+  cublaslt bf16 heur0                        x39  iso    137.68 us  152.4 GB/s | spin    133.06 | str    127.20 us  165.0 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x39  iso    132.51 us  158.4 GB/s | spin    129.89 | str    126.74 us  165.6 GB/s | pass
+  v2abl    bf16 t256_r1_u1_xg_full           x39  iso     93.42 us  224.6 GB/s | spin     93.02 | str     89.96 us  233.3 GB/s | pass
+  cublaslt bf16 heur6                        x39  iso    134.11 us  156.5 GB/s | spin    131.04 | str    123.68 us  169.7 GB/s | pass
+  v0       bf16 t256                         x39  iso    278.53 us   75.3 GB/s | spin    278.34 | str    275.05 us   76.3 GB/s | pass
+  cublaslt bf16 heur7                        x39  iso    187.46 us  111.9 GB/s | spin    186.21 | str    182.80 us  114.8 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld4       x39  iso     95.39 us  220.0 GB/s | spin     95.04 | str     91.34 us  229.7 GB/s | pass
+  cublaslt bf16 heur5                        x39  iso    150.46 us  139.5 GB/s | spin    148.32 | str    145.22 us  144.5 GB/s | pass
+  v2abl    bf16 t128_r2_u1_xg_full           x39  iso     94.37 us  222.4 GB/s | spin     94.02 | str     91.07 us  230.4 GB/s | pass
+  cublaslt bf16 heur4                        x39  iso    101.44 us  206.9 GB/s | spin     99.20 | str     96.36 us  217.8 GB/s | pass
+  v2abl    bf16 t128_r4_u1_xg_full           x39  iso     98.48 us  213.1 GB/s | spin     99.17 | str     93.43 us  224.6 GB/s | pass
+  v2abl    bf16 t128_r1_u4_xg_full           x39  iso     94.11 us  223.0 GB/s | spin     93.02 | str     90.27 us  232.5 GB/s | pass
+  cublaslt bf16 heur3                        x39  iso    102.53 us  204.7 GB/s | spin    100.11 | str     94.51 us  222.0 GB/s | FAIL (recorded, not fatal)
+  read     int8 t256_g768                    x77  iso     48.19 us  217.8 GB/s | spin     47.90 | str     44.55 us  235.6 GB/s | n/a
+  v3       int8 t128_r1_u4_xg_full           x77  iso     49.20 us  213.6 GB/s | spin     48.06 | str     47.11 us  223.0 GB/s | pass
+
+== out  model.language_model.layers.0.linear_attn.out_proj.weight  M=2560 K=4096
+  quant int8: cpu rel err 1.0457e-02 (predicted 1.0420e-02), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  quant int4: cpu rel err 1.2885e-01 (predicted 1.2366e-01), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  v4       int4 t128_r1_u2_xg_full           x149 iso     28.74 us  188.6 GB/s | spin     28.38 | str     26.59 us  203.8 GB/s | pass
+  v4load   int4 t128_r1_u2_xg_full           x149 iso     28.86 us  187.8 GB/s | spin     27.62 | str     26.18 us  207.0 GB/s | n/a
+  read     int4 t256_g768                    x149 iso     26.72 us  202.3 GB/s | spin     26.46 | str     23.68 us  228.3 GB/s | n/a
+  v2abl    bf16 t128_r1_u1_xs_full           x39  iso     95.25 us  220.3 GB/s | spin     94.11 | str     90.92 us  230.8 GB/s | pass
+  read     bf16 t256_g768                    x39  iso     92.85 us  225.9 GB/s | spin     92.00 | str     88.38 us  237.3 GB/s | n/a
+  v2abl    bf16 t128_r1_u2_xg_full           x39  iso     94.35 us  222.4 GB/s | spin     93.92 | str     90.36 us  232.2 GB/s | pass
+  cublaslt bf16 heur1                        x39  iso     98.46 us  213.1 GB/s | spin    106.82 | str     94.18 us  222.8 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld8       x39  iso     95.52 us  219.7 GB/s | spin     95.07 | str     95.92 us  218.8 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_pers           x39  iso     95.22 us  220.4 GB/s | spin     94.02 | str     91.24 us  230.0 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x39  iso     94.11 us  223.0 GB/s | spin     94.05 | str     95.52 us  219.7 GB/s | pass
+  cublaslt bf16 heur2                        x39  iso    100.42 us  209.0 GB/s | spin     98.11 | str    103.15 us  203.4 GB/s | pass
+  v1       bf16 t256                         x39  iso     99.20 us  211.5 GB/s | spin     99.10 | str     94.77 us  221.4 GB/s | pass
+  cublaslt bf16 heur0                        x39  iso    146.66 us  143.1 GB/s | spin    134.19 | str    143.96 us  145.8 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x39  iso    133.94 us  156.7 GB/s | spin    130.06 | str    127.49 us  164.6 GB/s | pass
+  v2abl    bf16 t256_r1_u1_xg_full           x39  iso     95.47 us  219.8 GB/s | spin    103.86 | str     93.87 us  223.5 GB/s | pass
+  cublaslt bf16 heur6                        x39  iso    121.73 us  172.4 GB/s | spin    120.77 | str     99.71 us  210.5 GB/s | pass
+  v0       bf16 t256                         x39  iso    429.95 us   48.8 GB/s | spin    428.06 | str    426.18 us   49.2 GB/s | pass
+  cublaslt bf16 heur7                        x39  iso    190.53 us  110.1 GB/s | spin    188.26 | str    185.31 us  113.2 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld4       x39  iso     97.41 us  215.4 GB/s | spin     97.09 | str     93.88 us  223.5 GB/s | pass
+  cublaslt bf16 heur5                        x39  iso    145.36 us  144.4 GB/s | spin    143.20 | str    140.74 us  149.1 GB/s | pass
+  v2abl    bf16 t128_r2_u1_xg_full           x39  iso     96.16 us  218.2 GB/s | spin     95.04 | str     91.03 us  230.5 GB/s | pass
+  cublaslt bf16 heur4                        x39  iso    102.29 us  205.2 GB/s | spin     99.17 | str     94.12 us  222.9 GB/s | pass
+  v2abl    bf16 t128_r4_u1_xg_full           x39  iso     97.47 us  215.3 GB/s | spin    107.49 | str     96.08 us  218.4 GB/s | pass
+  v2abl    bf16 t128_r1_u4_xg_full           x39  iso     95.01 us  220.9 GB/s | spin     94.05 | str     91.61 us  229.1 GB/s | pass
+  cublaslt bf16 heur3                        x39  iso    103.52 us  202.7 GB/s | spin    100.19 | str     95.69 us  219.3 GB/s | FAIL (recorded, not fatal)
+  read     int8 t256_g768                    x77  iso     48.90 us  214.6 GB/s | spin     47.97 | str     45.37 us  231.2 GB/s | n/a
+  v3       int8 t128_r1_u4_xg_full           x77  iso     49.47 us  212.3 GB/s | spin     48.96 | str     46.39 us  226.4 GB/s | pass
+
+== q  model.language_model.layers.3.self_attn.q_proj.weight  M=8192 K=2560
+  quant int8: cpu rel err 9.6378e-03 (predicted 9.3984e-03), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  quant int4: cpu rel err 1.2215e-01 (predicted 1.1938e-01), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  v4       int4 t128_r1_u2_xg_full           x75  iso     51.23 us  211.5 GB/s | spin     50.98 | str     49.52 us  218.8 GB/s | pass
+  v4load   int4 t128_r1_u2_xg_full           x75  iso     50.82 us  213.2 GB/s | spin     49.98 | str     47.31 us  229.0 GB/s | n/a
+  read     int4 t256_g768                    x75  iso     49.28 us  219.4 GB/s | spin     48.96 | str     46.41 us  233.0 GB/s | n/a
+  v2abl    bf16 t128_r1_u1_xs_full           x20  iso    185.28 us  226.5 GB/s | spin    191.81 | str    182.74 us  229.6 GB/s | pass
+  read     bf16 t256_g768                    x20  iso    181.34 us  231.3 GB/s | spin    180.99 | str    176.47 us  237.7 GB/s | n/a
+  v2abl    bf16 t128_r1_u2_xg_full           x20  iso    185.25 us  226.5 GB/s | spin    184.16 | str    179.94 us  233.2 GB/s | pass
+  cublaslt bf16 heur1                        x20  iso    186.03 us  225.6 GB/s | spin    183.10 | str    178.98 us  234.5 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld8       x20  iso    184.80 us  227.1 GB/s | spin    182.94 | str    179.20 us  234.2 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_pers           x20  iso    183.15 us  229.1 GB/s | spin    182.26 | str    181.26 us  231.5 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x20  iso    182.53 us  229.9 GB/s | spin    182.05 | str    178.65 us  234.9 GB/s | pass
+  cublaslt bf16 heur2                        x20  iso    192.46 us  218.0 GB/s | spin    190.24 | str    184.96 us  226.9 GB/s | FAIL (recorded, not fatal)
+  v1       bf16 t256                         x20  iso    190.08 us  220.8 GB/s | spin    189.31 | str    184.05 us  228.0 GB/s | pass
+  cublaslt bf16 heur0                        x20  iso    253.74 us  165.4 GB/s | spin    251.70 | str    247.76 us  169.4 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x20  iso    253.92 us  165.3 GB/s | spin    250.72 | str    247.82 us  169.3 GB/s | pass
+  v2abl    bf16 t256_r1_u1_xg_full           x20  iso    183.04 us  229.3 GB/s | spin    181.98 | str    178.46 us  235.1 GB/s | pass
+  cublaslt bf16 heur6                        x20  iso    259.04 us  162.0 GB/s | spin    282.50 | str    244.41 us  171.7 GB/s | pass
+  v0       bf16 t256                         x20  iso    420.46 us   99.8 GB/s | spin    419.68 | str    417.71 us  100.5 GB/s | pass
+  cublaslt bf16 heur7                        x20  iso    359.36 us  116.8 GB/s | spin    357.14 | str    354.41 us  118.4 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld4       x20  iso    185.18 us  226.6 GB/s | spin    185.15 | str    181.20 us  231.6 GB/s | pass
+  cublaslt bf16 heur5                        x20  iso    291.86 us  143.8 GB/s | spin    289.60 | str    287.02 us  146.2 GB/s | pass
+  v2abl    bf16 t128_r2_u1_xg_full           x20  iso    183.28 us  229.0 GB/s | spin    182.91 | str    179.91 us  233.3 GB/s | pass
+  cublaslt bf16 heur4                        x20  iso    195.46 us  214.7 GB/s | spin    192.35 | str    186.96 us  224.5 GB/s | pass
+  v2abl    bf16 t128_r4_u1_xg_full           x20  iso    184.32 us  227.7 GB/s | spin    184.13 | str    180.52 us  232.5 GB/s | pass
+  v2abl    bf16 t128_r1_u4_xg_full           x20  iso    183.33 us  228.9 GB/s | spin    182.91 | str    179.17 us  234.2 GB/s | pass
+  cublaslt bf16 heur3                        x20  iso    188.35 us  222.8 GB/s | spin    185.25 | str    182.16 us  230.4 GB/s | pass
+  read     int8 t256_g768                    x39  iso     92.06 us  228.0 GB/s | spin     90.98 | str     87.53 us  239.8 GB/s | n/a
+  v3       int8 t128_r1_u4_xg_full           x39  iso     92.19 us  227.9 GB/s | spin     91.87 | str     88.08 us  238.5 GB/s | pass
+
+== k  model.language_model.layers.3.self_attn.k_proj.weight  M=1024 K=2560
+  quant int8: cpu rel err 9.8601e-03 (predicted 9.9316e-03), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  quant int4: cpu rel err 1.2002e-01 (predicted 1.2035e-01), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  v4       int4 t128_r1_u2_xg_full           x596 iso     11.36 us  119.6 GB/s | spin     11.06 | str      8.86 us  153.4 GB/s | pass
+  v4load   int4 t128_r1_u2_xg_full           x596 iso     11.36 us  119.6 GB/s | spin     10.08 | str      8.01 us  169.5 GB/s | n/a
+  read     int4 t256_g768                    x596 iso     10.37 us  130.4 GB/s | spin     11.17 | str      8.40 us  160.9 GB/s | n/a
+  v2abl    bf16 t128_r1_u1_xs_full           x154 iso     27.46 us  191.2 GB/s | spin     26.43 | str     23.86 us  220.0 GB/s | pass
+  read     bf16 t256_g768                    x154 iso     26.46 us  198.1 GB/s | spin     25.41 | str     22.91 us  228.8 GB/s | n/a
+  v2abl    bf16 t128_r1_u2_xg_full           x154 iso     26.82 us  195.8 GB/s | spin     26.43 | str     23.56 us  222.8 GB/s | pass
+  cublaslt bf16 heur1                        x154 iso     29.31 us  179.1 GB/s | spin     26.46 | str     23.92 us  219.4 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld8       x154 iso     26.72 us  196.5 GB/s | spin     26.43 | str     23.63 us  222.2 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_pers           x154 iso     26.72 us  196.5 GB/s | spin     26.43 | str     23.87 us  219.9 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x154 iso     28.51 us  184.1 GB/s | spin     28.51 | str     23.52 us  223.2 GB/s | pass
+  cublaslt bf16 heur2                        x154 iso     40.38 us  130.0 GB/s | spin     38.72 | str     35.36 us  148.5 GB/s | pass
+  v1       bf16 t256                         x154 iso     27.65 us  189.9 GB/s | spin     26.43 | str     24.34 us  215.7 GB/s | pass
+  cublaslt bf16 heur0                        x154 iso     39.82 us  131.8 GB/s | spin     37.65 | str     35.53 us  147.8 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x154 iso     40.86 us  128.5 GB/s | spin     38.72 | str     36.90 us  142.3 GB/s | pass
+  v2abl    bf16 t256_r1_u1_xg_full           x154 iso     27.23 us  192.8 GB/s | spin     26.43 | str     23.48 us  223.6 GB/s | pass
+  cublaslt bf16 heur6                        x154 iso     39.97 us  131.4 GB/s | spin     38.75 | str     34.38 us  152.7 GB/s | pass
+  v0       bf16 t256                         x154 iso    275.55 us   19.1 GB/s | spin    274.27 | str    271.98 us   19.3 GB/s | pass
+  cublaslt bf16 heur7                        x154 iso     58.18 us   90.2 GB/s | spin     55.14 | str     52.34 us  100.3 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld4       x154 iso     27.74 us  189.2 GB/s | spin     26.43 | str     24.05 us  218.3 GB/s | pass
+  cublaslt bf16 heur5                        x154 iso     35.74 us  146.9 GB/s | spin     32.58 | str     27.98 us  187.6 GB/s | FAIL (recorded, not fatal)
+  v2abl    bf16 t128_r2_u1_xg_full           x154 iso     27.58 us  190.3 GB/s | spin     26.43 | str     23.91 us  219.5 GB/s | pass
+  cublaslt bf16 heur4                        x154 iso     33.98 us  154.5 GB/s | spin     31.55 | str     26.29 us  199.7 GB/s | pass
+  v2abl    bf16 t128_r4_u1_xg_full           x154 iso     27.68 us  189.7 GB/s | spin     26.43 | str     24.19 us  217.1 GB/s | pass
+  v2abl    bf16 t128_r1_u4_xg_full           x154 iso     26.72 us  196.5 GB/s | spin     26.43 | str     23.53 us  223.1 GB/s | pass
+  cublaslt bf16 heur3                        x154 iso     36.86 us  142.4 GB/s | spin     32.61 | str     29.17 us  180.0 GB/s | pass
+  read     int8 t256_g768                    x307 iso     15.36 us  170.8 GB/s | spin     15.17 | str     12.17 us  215.6 GB/s | n/a
+  v3       int8 t128_r1_u4_xg_full           x307 iso     19.62 us  134.1 GB/s | spin     18.45 | str     13.12 us  200.5 GB/s | pass
+
+== v  model.language_model.layers.3.self_attn.v_proj.weight  M=1024 K=2560
+  quant int8: cpu rel err 1.0040e-02 (predicted 9.4323e-03), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  quant int4: cpu rel err 1.2749e-01 (predicted 1.2054e-01), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  v4       int4 t128_r1_u2_xg_full           x596 iso     11.39 us  119.3 GB/s | spin     11.07 | str      8.39 us  162.0 GB/s | pass
+  v4load   int4 t128_r1_u2_xg_full           x596 iso     11.42 us  118.9 GB/s | spin     10.08 | str      8.05 us  168.9 GB/s | n/a
+  read     int4 t256_g768                    x596 iso     11.49 us  117.7 GB/s | spin     12.03 | str      7.06 us  191.5 GB/s | n/a
+  v2abl    bf16 t128_r1_u1_xs_full           x154 iso     27.52 us  190.8 GB/s | spin     26.43 | str     23.77 us  220.8 GB/s | pass
+  read     bf16 t256_g768                    x154 iso     25.79 us  203.3 GB/s | spin     25.41 | str     22.87 us  229.2 GB/s | n/a
+  v2abl    bf16 t128_r1_u2_xg_full           x154 iso     28.74 us  182.7 GB/s | spin     28.48 | str     24.45 us  214.7 GB/s | pass
+  cublaslt bf16 heur1                        x154 iso     28.74 us  182.7 GB/s | spin     26.46 | str     23.80 us  220.6 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld8       x154 iso     27.65 us  189.9 GB/s | spin     26.43 | str     23.61 us  222.4 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_pers           x154 iso     26.75 us  196.2 GB/s | spin     26.40 | str     23.51 us  223.3 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x154 iso     26.72 us  196.5 GB/s | spin     26.35 | str     23.49 us  223.5 GB/s | pass
+  cublaslt bf16 heur2                        x154 iso     40.67 us  129.1 GB/s | spin     38.72 | str     35.27 us  148.8 GB/s | pass
+  v1       bf16 t256                         x154 iso     27.65 us  189.9 GB/s | spin     26.43 | str     24.18 us  217.1 GB/s | pass
+  cublaslt bf16 heur0                        x154 iso     39.76 us  132.0 GB/s | spin     36.72 | str     34.64 us  151.6 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x154 iso     40.74 us  128.9 GB/s | spin     36.70 | str     35.61 us  147.4 GB/s | pass
+  v2abl    bf16 t256_r1_u1_xg_full           x154 iso     26.69 us  196.7 GB/s | spin     26.40 | str     23.45 us  223.9 GB/s | pass
+  cublaslt bf16 heur6                        x154 iso     40.00 us  131.3 GB/s | spin     38.72 | str     32.55 us  161.3 GB/s | pass
+  v0       bf16 t256                         x154 iso    275.42 us   19.1 GB/s | spin    274.24 | str    271.98 us   19.3 GB/s | pass
+  cublaslt bf16 heur7                        x154 iso     58.43 us   89.8 GB/s | spin     55.22 | str     52.35 us  100.3 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld4       x154 iso     27.62 us  190.1 GB/s | spin     26.43 | str     23.97 us  219.0 GB/s | pass
+  cublaslt bf16 heur5                        x154 iso     35.81 us  146.6 GB/s | spin     32.61 | str     27.76 us  189.1 GB/s | FAIL (recorded, not fatal)
+  v2abl    bf16 t128_r2_u1_xg_full           x154 iso     27.58 us  190.3 GB/s | spin     26.43 | str     25.53 us  205.7 GB/s | pass
+  cublaslt bf16 heur4                        x154 iso     34.50 us  152.2 GB/s | spin     31.34 | str     27.33 us  192.1 GB/s | pass
+  v2abl    bf16 t128_r4_u1_xg_full           x154 iso     27.71 us  189.5 GB/s | spin     26.43 | str     24.29 us  216.1 GB/s | pass
+  v2abl    bf16 t128_r1_u4_xg_full           x154 iso     27.30 us  192.3 GB/s | spin     26.37 | str     23.79 us  220.7 GB/s | pass
+  cublaslt bf16 heur3                        x154 iso     34.75 us  151.1 GB/s | spin     32.48 | str     29.07 us  180.6 GB/s | pass
+  read     int8 t256_g768                    x307 iso     15.42 us  170.1 GB/s | spin     15.17 | str     12.22 us  214.7 GB/s | n/a
+  v3       int8 t128_r1_u4_xg_full           x307 iso     15.78 us  166.8 GB/s | spin     15.17 | str     12.73 us  206.7 GB/s | pass
+
+== o  model.language_model.layers.3.self_attn.o_proj.weight  M=2560 K=4096
+  quant int8: cpu rel err 1.0083e-02 (predicted 1.0153e-02), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  quant int4: cpu rel err 1.2559e-01 (predicted 1.2404e-01), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  v4       int4 t128_r1_u2_xg_full           x149 iso     28.64 us  189.2 GB/s | spin     27.55 | str     26.50 us  204.6 GB/s | pass
+  v4load   int4 t128_r1_u2_xg_full           x149 iso     28.67 us  189.0 GB/s | spin     27.46 | str     26.17 us  207.1 GB/s | n/a
+  read     int4 t256_g768                    x149 iso     28.83 us  187.5 GB/s | spin     28.51 | str     23.62 us  228.9 GB/s | n/a
+  v2abl    bf16 t128_r1_u1_xs_full           x39  iso     95.14 us  220.6 GB/s | spin     93.89 | str     89.71 us  233.9 GB/s | pass
+  read     bf16 t256_g768                    x39  iso     92.02 us  227.9 GB/s | spin     91.73 | str     87.54 us  239.6 GB/s | n/a
+  v2abl    bf16 t128_r1_u2_xg_full           x39  iso     93.49 us  224.5 GB/s | spin     93.02 | str     89.29 us  235.0 GB/s | pass
+  cublaslt bf16 heur1                        x39  iso     96.22 us  218.1 GB/s | spin     94.02 | str     90.36 us  232.2 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld8       x39  iso     94.37 us  222.4 GB/s | spin     93.02 | str     89.40 us  234.7 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_pers           x39  iso     93.92 us  223.4 GB/s | spin     92.99 | str     89.37 us  234.8 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x39  iso     93.42 us  224.6 GB/s | spin     92.99 | str     89.22 us  235.2 GB/s | pass
+  cublaslt bf16 heur2                        x39  iso    100.22 us  209.4 GB/s | spin    102.24 | str     93.43 us  224.6 GB/s | pass (spin too short)
+  v1       bf16 t256                         x39  iso     98.16 us  213.8 GB/s | spin     97.98 | str     94.48 us  222.1 GB/s | pass
+  cublaslt bf16 heur0                        x39  iso    132.22 us  158.7 GB/s | spin    129.92 | str    127.14 us  165.1 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x39  iso    134.34 us  156.2 GB/s | spin    131.94 | str    127.08 us  165.1 GB/s | pass
+  v2abl    bf16 t256_r1_u1_xg_full           x39  iso     94.00 us  223.2 GB/s | spin     92.99 | str     89.90 us  233.4 GB/s | pass
+  cublaslt bf16 heur6                        x39  iso    105.54 us  198.8 GB/s | spin    104.35 | str     99.88 us  210.1 GB/s | pass
+  v0       bf16 t256                         x39  iso    429.94 us   48.8 GB/s | spin    429.70 | str    426.18 us   49.2 GB/s | pass
+  cublaslt bf16 heur7                        x39  iso    190.34 us  110.3 GB/s | spin    188.22 | str    185.25 us  113.3 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld4       x39  iso     96.37 us  217.8 GB/s | spin     96.10 | str     93.23 us  225.1 GB/s | pass
+  cublaslt bf16 heur5                        x39  iso    144.46 us  145.3 GB/s | spin    142.14 | str    139.55 us  150.4 GB/s | pass
+  v2abl    bf16 t128_r2_u1_xg_full           x39  iso     94.24 us  222.7 GB/s | spin     93.95 | str     90.58 us  231.7 GB/s | pass
+  cublaslt bf16 heur4                        x39  iso    101.44 us  206.9 GB/s | spin     98.98 | str     93.56 us  224.3 GB/s | pass
+  v2abl    bf16 t128_r4_u1_xg_full           x39  iso     94.86 us  221.2 GB/s | spin     94.02 | str     91.11 us  230.3 GB/s | pass
+  v2abl    bf16 t128_r1_u4_xg_full           x39  iso     93.25 us  225.0 GB/s | spin     92.99 | str     89.61 us  234.2 GB/s | pass
+  cublaslt bf16 heur3                        x39  iso    102.26 us  205.2 GB/s | spin     99.15 | str     94.19 us  222.8 GB/s | FAIL (recorded, not fatal)
+  read     int8 t256_g768                    x77  iso     49.07 us  213.8 GB/s | spin     47.02 | str     44.10 us  237.9 GB/s | n/a
+  v3       int8 t128_r1_u4_xg_full           x77  iso     49.12 us  213.8 GB/s | spin     49.38 | str     48.16 us  218.1 GB/s | pass
+
+== lmhead  model.language_model.embed_tokens.weight  M=248320 K=2560
+  quant int8: cpu rel err 1.1094e-02 (predicted 1.0218e-02), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  quant int4: cpu rel err 1.3642e-01 (predicted 1.2585e-01), violations 0, max|w-qs|/s 0.5000, subnormal scales 0, zero scales 0
+  v4       int4 t128_r1_u2_xg_full           x3   iso   1381.18 us  237.7 GB/s | spin   1380.22 | str   1373.16 us  239.1 GB/s | pass
+  v4load   int4 t128_r1_u2_xg_full           x3   iso   1382.18 us  237.5 GB/s | spin   1381.71 | str   1375.03 us  238.7 GB/s | n/a
+  read     int4 t256_g768                    x3   iso   1385.49 us  236.6 GB/s | spin   1383.25 | str   1372.78 us  238.8 GB/s | n/a
+  v2abl    bf16 t128_r1_u1_xs_full           x2   iso   5347.10 us  237.9 GB/s | spin   5345.66 | str   5348.10 us  237.8 GB/s | pass
+  read     bf16 t256_g768                    x2   iso   5387.73 us  236.0 GB/s | spin   5386.11 | str   5387.77 us  236.0 GB/s | n/a
+  v2abl    bf16 t128_r1_u2_xg_full           x2   iso   5369.90 us  236.9 GB/s | spin   5368.69 | str   5370.75 us  236.8 GB/s | pass
+  cublaslt bf16 heur1                        x2   iso   7359.52 us  172.8 GB/s | spin   7354.24 | str   7356.29 us  172.9 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld8       x2   iso   5373.87 us  236.7 GB/s | spin   5372.82 | str   5374.40 us  236.7 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_pers           x2   iso   5434.35 us  234.0 GB/s | spin   5432.00 | str   5433.09 us  234.1 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x2   iso   5354.45 us  237.5 GB/s | spin   5354.72 | str   5353.78 us  237.6 GB/s | pass
+  cublaslt bf16 heur2                        x2   iso   5393.23 us  235.8 GB/s | spin   5389.23 | str   5391.85 us  235.9 GB/s | pass
+  v1       bf16 t256                         x2   iso   5469.06 us  232.6 GB/s | spin   5467.01 | str   5469.81 us  232.5 GB/s | pass
+  cublaslt bf16 heur0                        x2   iso   7360.43 us  172.8 GB/s | spin   7356.27 | str   7358.16 us  172.9 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x2   iso   7359.31 us  172.8 GB/s | spin   7357.22 | str   7356.89 us  172.9 GB/s | pass
+  v2abl    bf16 t256_r1_u1_xg_full           x2   iso   5345.26 us  237.9 GB/s | spin   5345.14 | str   5346.51 us  237.9 GB/s | pass
+  cublaslt bf16 heur6                        x2   iso   9340.66 us  136.2 GB/s | spin   9332.59 | str   9335.87 us  136.2 GB/s | pass
+  v0       bf16 t256                         x2   iso  11187.66 us  113.7 GB/s | spin  11191.14 | str  11207.95 us  113.5 GB/s | pass
+  cublaslt bf16 heur7                        x2   iso  11758.42 us  108.2 GB/s | spin  11755.92 | str  11764.92 us  108.1 GB/s | pass
+  v2abl    bf16 t128_r1_u1_xg_full_ld4       x2   iso   5413.01 us  235.0 GB/s | spin   5414.75 | str   5416.54 us  234.8 GB/s | pass
+  cublaslt bf16 heur5                        x2   iso   8702.78 us  146.1 GB/s | spin   8696.70 | str   8696.43 us  146.3 GB/s | pass
+  v2abl    bf16 t128_r2_u1_xg_full           x2   iso   5360.72 us  237.3 GB/s | spin   5356.94 | str   5360.75 us  237.3 GB/s | pass
+  cublaslt bf16 heur4                        x2   iso   5611.31 us  226.7 GB/s | spin   5607.26 | str   5615.54 us  226.5 GB/s | pass
+  v2abl    bf16 t128_r4_u1_xg_full           x2   iso   5388.74 us  236.0 GB/s | spin   5386.45 | str   5387.07 us  236.1 GB/s | pass
+  v2abl    bf16 t128_r1_u4_xg_full           x2   iso   5418.22 us  234.7 GB/s | spin   5393.31 | str   5392.60 us  235.9 GB/s | pass
+  cublaslt bf16 heur3                        x2   iso   5306.35 us  239.7 GB/s | spin   5303.17 | str   5307.03 us  239.7 GB/s | pass
+  read     int8 t256_g768                    x2   iso   2693.90 us  236.2 GB/s | spin   2692.85 | str   2675.84 us  237.8 GB/s | n/a
+  v3       int8 t128_r1_u4_xg_full           x2   iso   2660.85 us  239.3 GB/s | spin   2655.42 | str   2643.73 us  240.8 GB/s | pass
+
+results/nsys/bench_under_nsys.csv: 297 rows in 385 s; every check passed
+Collecting data...
+Generating '/tmp/nsys-report-e7d7.qdstrm'
+[1/1] [0%                          ] final_pass.nsys-rep[1/1] [0%                          ] final_pass.nsys-rep[1/1] [==19%                       ] final_pass.nsys-rep[1/1] [==20%                       ] final_pass.nsys-rep[1/1] [=17%                        ] final_pass.nsys-rep[1/1] [==18%                       ] final_pass.nsys-rep[1/1] [==19%                       ] final_pass.nsys-rep[1/1] [=16%                        ] final_pass.nsys-rep[1/1] [==19%                       ] final_pass.nsys-rep[1/1] [=16%                        ] final_pass.nsys-rep[1/1] [=17%                        ] final_pass.nsys-rep[1/1] [==18%                       ] final_pass.nsys-rep[1/1] [=16%                        ] final_pass.nsys-rep[1/1] [=17%                        ] final_pass.nsys-rep[1/1] [==18%                       ] final_pass.nsys-rep[1/1] [=16%                        ] final_pass.nsys-rep[1/1] [=17%                        ] final_pass.nsys-rep[1/1] [=15%                        ] final_pass.nsys-rep[1/1] [=17%                        ] final_pass.nsys-rep[1/1] [=15%                        ] final_pass.nsys-rep[1/1] [=16%                        ] final_pass.nsys-rep[1/1] [=17%                        ] final_pass.nsys-rep[1/1] [=15%                        ] final_pass.nsys-rep[1/1] [===23%                      ] final_pass.nsys-rep[1/1] [==21%                       ] final_pass.nsys-rep[1/1] [==19%                       ] final_pass.nsys-rep[1/1] [==18%                       ] final_pass.nsys-rep[1/1] [=16%                        ] final_pass.nsys-rep[1/1] [=15%                        ] final_pass.nsys-rep[1/1] [14%                         ] final_pass.nsys-rep[1/1] [13%                         ] final_pass.nsys-rep[1/1] [12%                         ] final_pass.nsys-rep[1/1] [11%                         ] final_pass.nsys-rep[1/1] [10%                         ] final_pass.nsys-rep[1/1] [9%                          ] final_pass.nsys-rep[1/1] [8%                          ] final_pass.nsys-rep[1/1] [7%                          ] final_pass.nsys-rep[1/1] [6%                          ] final_pass.nsys-rep[1/1] [5%                          ] final_pass.nsys-rep[1/1] [0%                          ] final_pass.nsys-rep[1/1] [5%                          ] final_pass.nsys-rep[1/1] [6%                          ] final_pass.nsys-rep[1/1] [7%                          ] final_pass.nsys-rep[1/1] [8%                          ] final_pass.nsys-rep[1/1] [9%                          ] final_pass.nsys-rep[1/1] [10%                         ] final_pass.nsys-rep[1/1] [11%                         ] final_pass.nsys-rep[1/1] [12%                         ] final_pass.nsys-rep[1/1] [13%                         ] final_pass.nsys-rep[1/1] [14%                         ] final_pass.nsys-rep[1/1] [=15%                        ] final_pass.nsys-rep[1/1] [=16%                        ] final_pass.nsys-rep[1/1] [=17%                        ] final_pass.nsys-rep[1/1] [==18%                       ] final_pass.nsys-rep[1/1] [==19%                       ] final_pass.nsys-rep[1/1] [==20%                       ] final_pass.nsys-rep[1/1] [==21%                       ] final_pass.nsys-rep[1/1] [===22%                      ] final_pass.nsys-rep[1/1] [===23%                      ] final_pass.nsys-rep[1/1] [===24%                      ] final_pass.nsys-rep[1/1] [====25%                     ] final_pass.nsys-rep[1/1] [====26%                     ] final_pass.nsys-rep[1/1] [====27%                     ] final_pass.nsys-rep[1/1] [====28%                     ] final_pass.nsys-rep[1/1] [=====29%                    ] final_pass.nsys-rep[1/1] [=====30%                    ] final_pass.nsys-rep[1/1] [=====31%                    ] final_pass.nsys-rep[1/1] [=====32%                    ] final_pass.nsys-rep[1/1] [======33%                   ] final_pass.nsys-rep[1/1] [======34%                   ] final_pass.nsys-rep[1/1] [======35%                   ] final_pass.nsys-rep[1/1] [=======36%                  ] final_pass.nsys-rep[1/1] [=======37%                  ] final_pass.nsys-rep[1/1] [=======38%                  ] final_pass.nsys-rep[1/1] [=======39%                  ] final_pass.nsys-rep[1/1] [========40%                 ] final_pass.nsys-rep[1/1] [========41%                 ] final_pass.nsys-rep[1/1] [========42%                 ] final_pass.nsys-rep[1/1] [=========43%                ] final_pass.nsys-rep[1/1] [=========44%                ] final_pass.nsys-rep[1/1] [=========45%                ] final_pass.nsys-rep[1/1] [=========46%                ] final_pass.nsys-rep[1/1] [==========47%               ] final_pass.nsys-rep[1/1] [==========48%               ] final_pass.nsys-rep[1/1] [==========49%               ] final_pass.nsys-rep[1/1] [===========50%              ] final_pass.nsys-rep[1/1] [===========51%              ] final_pass.nsys-rep[1/1] [===========52%              ] final_pass.nsys-rep[1/1] [===========53%              ] final_pass.nsys-rep[1/1] [============54%             ] final_pass.nsys-rep[1/1] [============55%             ] final_pass.nsys-rep[1/1] [============56%             ] final_pass.nsys-rep[1/1] [============57%             ] final_pass.nsys-rep[1/1] [=============58%            ] final_pass.nsys-rep[1/1] [=============59%            ] final_pass.nsys-rep[1/1] [=============60%            ] final_pass.nsys-rep[1/1] [==============61%           ] final_pass.nsys-rep[1/1] [==============62%           ] final_pass.nsys-rep[1/1] [==============63%           ] final_pass.nsys-rep[1/1] [==============64%           ] final_pass.nsys-rep[1/1] [===============65%          ] final_pass.nsys-rep[1/1] [===============66%          ] final_pass.nsys-rep[1/1] [===============67%          ] final_pass.nsys-rep[1/1] [================68%         ] final_pass.nsys-rep[1/1] [================69%         ] final_pass.nsys-rep[1/1] [================70%         ] final_pass.nsys-rep[1/1] [================71%         ] final_pass.nsys-rep[1/1] [=================72%        ] final_pass.nsys-rep[1/1] [=================73%        ] final_pass.nsys-rep[1/1] [=================74%        ] final_pass.nsys-rep[1/1] [==================75%       ] final_pass.nsys-rep[1/1] [==================76%       ] final_pass.nsys-rep[1/1] [==================77%       ] final_pass.nsys-rep[1/1] [==================78%       ] final_pass.nsys-rep[1/1] [===================79%      ] final_pass.nsys-rep[1/1] [===================80%      ] final_pass.nsys-rep[1/1] [===================81%      ] final_pass.nsys-rep[1/1] [===================82%      ] final_pass.nsys-rep[1/1] [========================100%] final_pass.nsys-rep[1/1] [========================100%] final_pass.nsys-rep
+Generated:
+	/home/xiaohui_chen/Projects/quantized-gemv-spark/results/nsys/final_pass.nsys-rep

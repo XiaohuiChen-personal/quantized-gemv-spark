@@ -1,0 +1,103 @@
+# utc=2026-11-15T05:53:55Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=96a367a mode=rotation seed=0 profile=warmup20+200ms_iso200_graph200x5 spin_ns=100000
+
+== gate  model.language_model.layers.0.mlp.gate_proj.weight  M=9216 K=2560
+  read     bf16 t256_g768                    x1   iso    165.41 us  285.3 GB/s | spin    165.73 | str    163.21 us  289.1 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x1   iso    169.54 us  278.5 GB/s | spin    169.84 | str    167.27 us  282.2 GB/s | pass
+  read     bf16 t256_g768                    x2   iso    195.94 us  240.8 GB/s | spin    182.11 | str    179.73 us  262.5 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x2   iso    199.09 us  237.1 GB/s | spin    187.44 | str    182.58 us  258.6 GB/s | pass
+  read     bf16 t256_g768                    x4   iso    197.02 us  239.5 GB/s | spin    196.58 | str    187.86 us  251.2 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x4   iso    200.22 us  235.8 GB/s | spin    200.54 | str    191.17 us  247.0 GB/s | pass
+  read     bf16 t256_g768                    x9   iso    200.19 us  235.7 GB/s | spin    200.54 | str    193.95 us  243.3 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x9   iso    203.17 us  232.4 GB/s | spin    203.62 | str    196.88 us  239.8 GB/s | pass
+  read     bf16 t256_g768                    x17  iso    200.14 us  235.8 GB/s | spin    200.54 | str    195.06 us  241.9 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x17  iso    202.34 us  233.3 GB/s | spin    203.58 | str    198.23 us  238.2 GB/s | pass
+  read     bf16 t256_g768                    x34  iso    199.82 us  236.1 GB/s | spin    200.54 | str    197.52 us  238.9 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x34  iso    203.30 us  232.2 GB/s | spin    203.58 | str    199.04 us  237.2 GB/s | pass
+  read     bf16 t256_g768                    x68  iso    199.31 us  236.7 GB/s | spin    199.49 | str    195.06 us  241.9 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x68  iso    202.37 us  233.3 GB/s | spin    202.59 | str    199.17 us  237.0 GB/s | pass
+  read     int4 t256_g768                    x2   iso     23.10 us  526.5 GB/s | spin     23.92 | str     20.61 us  590.4 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x2   iso     25.09 us  485.8 GB/s | spin     24.99 | str     22.35 us  545.3 GB/s | pass
+  read     int4 t256_g768                    x4   iso     51.74 us  235.1 GB/s | spin     52.06 | str     49.81 us  244.2 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x4   iso     52.83 us  230.7 GB/s | spin     53.30 | str     52.10 us  234.0 GB/s | pass
+  read     int4 t256_g768                    x8   iso     51.81 us  234.8 GB/s | spin     52.06 | str     49.58 us  245.3 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x8   iso     53.71 us  226.9 GB/s | spin     54.08 | str     52.75 us  231.1 GB/s | pass
+  read     int4 t256_g768                    x17  iso     52.77 us  230.5 GB/s | spin     53.09 | str     50.13 us  242.6 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x17  iso     53.86 us  226.3 GB/s | spin     54.24 | str     53.36 us  228.4 GB/s | pass
+  read     int4 t256_g768                    x33  iso     52.86 us  230.1 GB/s | spin     53.31 | str     50.56 us  240.6 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x33  iso     55.63 us  219.1 GB/s | spin     55.14 | str     53.39 us  228.3 GB/s | pass
+  read     int4 t256_g768                    x66  iso     53.79 us  226.2 GB/s | spin     54.11 | str     50.98 us  238.6 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x66  iso     54.82 us  222.4 GB/s | spin     55.14 | str     53.75 us  226.8 GB/s | pass
+  read     int4 t256_g768                    x132 iso     53.97 us  225.4 GB/s | spin     54.13 | str     51.24 us  237.4 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x132 iso     54.98 us  221.7 GB/s | spin     56.13 | str     54.74 us  222.7 GB/s | pass
+  read     int4 t256_g768                    x265 iso     53.79 us  226.2 GB/s | spin     54.11 | str     50.70 us  239.9 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x265 iso     54.78 us  222.5 GB/s | spin     55.12 | str     52.55 us  231.9 GB/s | pass
+
+== out  model.language_model.layers.0.linear_attn.out_proj.weight  M=2560 K=4096
+  read     bf16 t256_g768                    x1   iso     23.17 us  905.2 GB/s | spin     23.42 | str     21.53 us  973.9 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x1   iso     22.02 us  953.2 GB/s | spin     22.37 | str     19.47 us 1077.6 GB/s | pass
+  read     bf16 t256_g768                    x2   iso     75.33 us  278.4 GB/s | spin     75.62 | str     72.81 us  288.0 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x2   iso     74.21 us  282.8 GB/s | spin     74.56 | str     72.30 us  290.2 GB/s | pass
+  read     bf16 t256_g768                    x5   iso     79.92 us  262.4 GB/s | spin     80.70 | str     78.84 us  266.0 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x5   iso     81.44 us  257.7 GB/s | spin     81.73 | str     79.57 us  263.7 GB/s | pass
+  read     bf16 t256_g768                    x10  iso     88.10 us  238.1 GB/s | spin     88.90 | str     83.06 us  252.5 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x10  iso     89.68 us  234.0 GB/s | spin     89.95 | str     84.32 us  248.9 GB/s | pass
+  read     bf16 t256_g768                    x19  iso     90.72 us  231.2 GB/s | spin     91.07 | str     86.04 us  243.7 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x19  iso     94.91 us  221.1 GB/s | spin     95.07 | str     90.37 us  232.2 GB/s | pass
+  read     bf16 t256_g768                    x38  iso     91.73 us  228.6 GB/s | spin     92.00 | str     88.33 us  237.4 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x38  iso     95.95 us  218.7 GB/s | spin     94.02 | str     90.59 us  231.6 GB/s | pass
+  read     bf16 t256_g768                    x77  iso     91.65 us  228.8 GB/s | spin     92.00 | str     87.61 us  239.4 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x77  iso     92.18 us  227.7 GB/s | spin     92.99 | str     89.08 us  235.6 GB/s | pass
+  read     bf16 t256_g768                    x154 iso     89.82 us  233.5 GB/s | spin     89.95 | str     86.80 us  241.6 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x154 iso     91.82 us  228.5 GB/s | spin     92.58 | str     88.74 us  236.5 GB/s | pass
+  read     int4 t256_g768                    x5   iso     19.07 us  283.5 GB/s | spin     19.30 | str     17.03 us  317.5 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x5   iso     20.00 us  271.0 GB/s | spin     20.32 | str     17.57 us  308.4 GB/s | pass
+  read     int4 t256_g768                    x9   iso     25.98 us  208.1 GB/s | spin     25.44 | str     23.30 us  232.0 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x9   iso     27.98 us  193.7 GB/s | spin     27.49 | str     25.65 us  211.3 GB/s | pass
+  read     int4 t256_g768                    x19  iso     25.90 us  208.7 GB/s | spin     25.52 | str     23.39 us  231.1 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x19  iso     27.20 us  199.3 GB/s | spin     27.49 | str     24.92 us  217.5 GB/s | pass
+  read     int4 t256_g768                    x37  iso     25.31 us  213.6 GB/s | spin     25.44 | str     23.25 us  232.5 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x37  iso     27.23 us  199.0 GB/s | spin     27.49 | str     26.50 us  204.5 GB/s | pass
+  read     int4 t256_g768                    x74  iso     25.65 us  210.8 GB/s | spin     25.50 | str     24.11 us  224.2 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x74  iso     27.30 us  198.6 GB/s | spin     27.49 | str     25.55 us  212.1 GB/s | pass
+  read     int4 t256_g768                    x149 iso     26.02 us  207.8 GB/s | spin     25.95 | str     23.50 us  230.1 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x149 iso     27.22 us  199.1 GB/s | spin     27.49 | str     25.05 us  216.4 GB/s | pass
+  read     int4 t256_g768                    x298 iso     26.11 us  207.1 GB/s | spin     26.43 | str     23.51 us  230.0 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x298 iso     27.23 us  199.0 GB/s | spin     27.49 | str     26.23 us  206.6 GB/s | pass
+  read     int4 t256_g768                    x596 iso     25.42 us  212.7 GB/s | spin     25.44 | str     23.18 us  233.2 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x596 iso     28.45 us  190.5 GB/s | spin     27.46 | str     25.99 us  208.5 GB/s | pass
+
+== k  model.language_model.layers.3.self_attn.k_proj.weight  M=1024 K=2560
+  read     bf16 t256_g768                    x5   iso     15.94 us  329.0 GB/s | spin     16.22 | str     13.86 us  378.2 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x5   iso     16.86 us  311.3 GB/s | spin     17.25 | str     14.36 us  365.6 GB/s | pass
+  read     bf16 t256_g768                    x10  iso     25.06 us  209.2 GB/s | spin     24.58 | str     22.61 us  231.9 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x10  iso     25.15 us  208.7 GB/s | spin     25.44 | str     23.16 us  226.7 GB/s | pass
+  read     bf16 t256_g768                    x19  iso     25.12 us  208.7 GB/s | spin     25.44 | str     22.74 us  230.5 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x19  iso     25.31 us  207.4 GB/s | spin     25.54 | str     23.41 us  224.2 GB/s | pass
+  read     bf16 t256_g768                    x38  iso     25.09 us  209.0 GB/s | spin     25.41 | str     22.62 us  231.8 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x38  iso     25.18 us  208.5 GB/s | spin     25.44 | str     23.21 us  226.2 GB/s | pass
+  read     bf16 t256_g768                    x77  iso     25.12 us  208.7 GB/s | spin     25.41 | str     22.68 us  231.2 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x77  iso     25.18 us  208.5 GB/s | spin     25.44 | str     23.31 us  225.3 GB/s | pass
+  read     bf16 t256_g768                    x154 iso     25.12 us  208.7 GB/s | spin     25.44 | str     22.78 us  230.2 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x154 iso     25.25 us  207.9 GB/s | spin     25.47 | str     23.39 us  224.4 GB/s | pass
+  read     bf16 t256_g768                    x307 iso     25.12 us  208.7 GB/s | spin     25.44 | str     22.83 us  229.6 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x307 iso     25.22 us  208.2 GB/s | spin     25.47 | str     23.36 us  224.7 GB/s | pass
+  read     bf16 t256_g768                    x614 iso     25.12 us  208.7 GB/s | spin     25.44 | str     22.72 us  230.7 GB/s | n/a
+  v2       bf16 t128_r1_u1_xg_full           x614 iso     25.18 us  208.5 GB/s | spin     26.40 | str     23.42 us  224.2 GB/s | pass
+  read     int4 t256_g768                    x19  iso      6.16 us  219.4 GB/s | spin      5.98 | str      4.08 us  331.1 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x19  iso      7.71 us  176.2 GB/s | spin      8.03 | str      5.13 us  265.1 GB/s | pass
+  read     int4 t256_g768                    x37  iso      8.80 us  153.6 GB/s | spin      9.06 | str      6.94 us  194.9 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x37  iso      9.82 us  138.3 GB/s | spin     10.08 | str      8.22 us  165.3 GB/s | pass
+  read     int4 t256_g768                    x74  iso      8.80 us  153.6 GB/s | spin      9.06 | str      7.48 us  180.7 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x74  iso      9.82 us  138.3 GB/s | spin     10.08 | str      8.22 us  165.3 GB/s | pass
+  read     int4 t256_g768                    x149 iso      8.80 us  153.6 GB/s | spin      9.06 | str      6.98 us  193.6 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x149 iso     10.88 us  124.9 GB/s | spin     10.08 | str      8.28 us  164.2 GB/s | pass
+  read     int4 t256_g768                    x298 iso      8.80 us  153.6 GB/s | spin      9.06 | str      7.00 us  193.0 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x298 iso      9.82 us  138.3 GB/s | spin     10.08 | str      8.25 us  164.6 GB/s | pass
+  read     int4 t256_g768                    x596 iso      8.80 us  153.6 GB/s | spin      9.06 | str      6.97 us  193.9 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x596 iso      9.82 us  138.3 GB/s | spin     10.08 | str      8.27 us  164.3 GB/s | pass
+  read     int4 t256_g768                    x1192 iso      8.80 us  153.6 GB/s | spin      9.06 | str      6.96 us  194.3 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x1192 iso     10.53 us  129.1 GB/s | spin     10.08 | str      8.90 us  152.7 GB/s | pass
+  read     int4 t256_g768                    x2383 iso      8.80 us  153.6 GB/s | spin      9.06 | str      6.87 us  196.7 GB/s | n/a
+  v4       int4 t128_r1_u2_xg_full           x2383 iso      9.82 us  138.3 GB/s | spin     10.08 | str      8.23 us  165.2 GB/s | pass
+
+results/rotation/sweep_final.csv: 94 rows in 35 s; every check passed

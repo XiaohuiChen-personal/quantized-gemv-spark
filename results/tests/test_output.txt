@@ -1,0 +1,15 @@
+# 2026-11-15T05:33:58Z host=spark-2a60 git=96a367a stage=test
+Cuda compilation tools, release 13.0, V13.0.88
+name, driver_version, utilization.gpu [%], clocks.current.sm [MHz], clocks.max.sm [MHz], power.draw [W], temperature.gpu
+NVIDIA GB10, 580.159.03, 0 %, 208 MHz, 3003 MHz, 5.30 W, 48
+# other GPU compute processes (none expected):
+# load average: 0.68 0.86 0.89 1/604 1591361
+conversions: 11 passed, 0 failed
+kernels: 231 tested, 28655 checks passed, 0 failed so far
+total: 28721 checks passed, 0 failed
+ALL TESTS PASSED
+........
+----------------------------------------------------------------------
+Ran 8 tests in 0.107s
+
+OK

@@ -1,0 +1,7 @@
+device: NVIDIA GB10  cc 12.1  SMs 48  L2 25165824 bytes
+memory bus 256 bits, reported memory clock 8533000 kHz -> 273.1 GB/s theoretical
+grid   192 x 256 | copy  median  215.1 GB/s  best  215.8 | read-only  median  236.0 GB/s  best  237.0
+grid   384 x 256 | copy  median  215.9 GB/s  best  216.3 | read-only  median  236.1 GB/s  best  237.4
+grid   768 x 256 | copy  median  216.1 GB/s  best  216.8 | read-only  median  236.0 GB/s  best  237.5
+grid  1536 x 256 | copy  median  217.0 GB/s  best  217.3 | read-only  median  237.1 GB/s  best  237.8
+empty kernel (event-timed, one launch): median 2.5 us  best 2.4 us

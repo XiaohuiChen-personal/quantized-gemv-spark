@@ -1,0 +1,6 @@
+# 2026-11-15T05:53:55Z host=spark-2a60 git=4886d93 stage=rotation
+Cuda compilation tools, release 13.0, V13.0.88
+name, driver_version, utilization.gpu [%], clocks.current.sm [MHz], clocks.max.sm [MHz], power.draw [W], temperature.gpu
+NVIDIA GB10, 580.159.03, 0 %, 208 MHz, 3003 MHz, 5.27 W, 48
+# other GPU compute processes (none expected):
+# load average: 0.64 0.93 0.97 1/587 1593312

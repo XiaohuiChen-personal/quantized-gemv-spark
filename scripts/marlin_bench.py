@@ -98,7 +98,8 @@ def main():
     try:  # the container may have no git; the host's commit is then recorded by run_stage.sh
         git = subprocess.run(["git", "describe", "--always", "--dirty"], capture_output=True, text=True).stdout.strip()
     except OSError:
-        git = os.environ.get("GIT_DESC", "unknown")
+        git = ""
+    git = git or os.environ.get("GIT_DESC", "unknown")  # git refuses a repo owned by another uid
     os.makedirs(os.path.dirname(a.out), exist_ok=True)
     rows = []
     for mid in a.only.split(","):

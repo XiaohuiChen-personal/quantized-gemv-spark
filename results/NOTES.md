@@ -13,7 +13,9 @@ the kernel faster almost exactly in proportion to the bytes saved: 1.98–2.02×
 (byte ratio 2.00) and 3.55–3.88× for INT4 (byte ratio 3.87) on the 47 MB MLP matrices and
 the 1.27 GB LM head. That costs about 1% (INT8) and 12–14% (INT4) relative output error
 with a random input. All four pre-registered verdicts (H1, H2-INT8, H2-INT4, H3) are
-confirmed, and each held in all three executions [ANALYSIS.md §4–6].
+confirmed, and each held in all three executions [ANALYSIS.md §4–6]. The stretch
+hypothesis H4 is confirmed too: my INT4 kernel matches vLLM's production Marlin kernel
+(0.95–1.01× its time on the large matrices, 0.81× on the 5 MB ones) [§7].
 
 ## 2. Findings, in the order the report should tell them
 
@@ -34,7 +36,10 @@ confirmed, and each held in all three executions [ANALYSIS.md §4–6].
    matrix with K = 2560 or 4096, but 227 GB/s on `down_proj` (K = 9216) [ladder.csv,
    marlin/marlin.csv]. cuBLASLt's heuristic list for the same problem ranks that slow
    algorithm first (heur0 ≈ GemmEx) and a fast one second (heur1 runs at v2's speed on
-   10 of 11 matrices) — reading: a heuristic tuned for other GPUs. So H1's
+   10 of 11 matrices). Nsight Systems shows both are the same `internal::gemvx::kernel`
+   template: the slow default is launched with 16 × 4 threads per block, the fast
+   alternative (and the default for K = 9216) with 32 × 4 [nsys/cublas_kernels.md].
+   Reading (not measured): a launch-shape heuristic tuned for other GPUs. So H1's
    "within 1.15× of cuBLAS" is easy (0.72×), and speedups *vs cuBLAS* (up to 5.3× for
    INT4) overstate what quantization buys; the report should lead with speedups over
    v2 and over cuBLASLt's best passing algorithm, which agree within 1%.
@@ -70,6 +75,16 @@ confirmed, and each held in all three executions [ANALYSIS.md §4–6].
    the byte-count ceilings at 241 GB/s for v2, v3 and v4 [analysis/per_token.csv]. These
    are upper bounds for a real engine (no attention, norms, state or KV-cache traffic).
 
+9. **A hand-written INT4 kernel can match production code here.** vLLM 0.16's Marlin
+   (`marlin_gemm`, uint4b8, group 128) on the same weights, timed by the same rules:
+   t(v4)/t(Marlin) = 0.974 (gate), 0.960 (up), 1.009 (down), 0.989 (LM head); 0.81 on the
+   5 MB `k`/`v` [ANALYSIS.md §7]. Reading: at batch 1 Marlin's tensor-core tiling buys
+   nothing on a memory-bound GEMV; both kernels sit at the same bandwidth ceiling.
+   Marlin's own quantizer (scale = max|w|/7.5, codes −8…7) gives 11.3–12.9% error, like v4.
+10. **Ground truth agrees.** Recomputing every verdict ratio from Nsight Systems kernel
+   durations changes nothing (H1 0.72–1.00; H2 INT8 2.01–2.78×, INT4 3.35–5.34× vs cuBLAS)
+   [ANALYSIS.md §15].
+
 ## 3. Method findings worth a paragraph each (the "assumptions" part of the report)
 
 - **The 4 × L2 rotation rule was not enough.** On the GB10, cycling copies whose total
@@ -95,11 +110,12 @@ confirmed, and each held in all three executions [ANALYSIS.md §4–6].
 
 ## 4. Open points and caveats (threats to validity)
 
-- **LM head accuracy above the prediction** (13.64% vs 12.58% INT4; 1.12% vs 1.02%
-  INT8). The prediction is the expectation over random x; one x is a single sample. An
-  embedding matrix is anisotropic (a large shared direction), so xᵀWᵀWx for one x can
-  sit well below its expectation, inflating the ratio. To verify: average the measured
-  ratio over many x (planned check; see the end of this file).
+- **LM head accuracy above the prediction — explained.** Measured 13.64% (INT4) and 1.12%
+  (INT8) vs predicted 12.58% and 1.02%. The embedding matrix is strongly anisotropic
+  (‖mean row‖² / mean ‖row‖² = 0.142, vs ≤ 0.020 for every other matrix), so one x is a
+  noisy sample. Over 64 fresh Gaussian x the LM head's INT4 error averages 12.55%
+  (5th–95th percentile 10.06–13.78%) and INT8 1.018%, matching the predictions; the fixed
+  x sits near the top of the range [accuracy/x_samples.csv]. H3 holds for typical x too.
 - Random Gaussian x measures weight-rounding error, not model quality; real activations
   have outliers that can make INT4 RTN much worse (the reason GPTQ/AWQ exist).
 - One GPU, one model, batch 1, one decode step; no end-to-end tokens/s measured.

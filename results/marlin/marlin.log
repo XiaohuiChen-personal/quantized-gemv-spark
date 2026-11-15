@@ -1,0 +1,44 @@
+
+=============
+== PyTorch ==
+=============
+
+NVIDIA Release 26.01 (build 256811084)
+PyTorch Version 2.10.0a0+a36e1d3
+Container image Copyright (c) 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2014-2024 Facebook Inc.
+Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
+Copyright (c) 2012-2014 Deepmind Technologies    (Koray Kavukcuoglu)
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2011-2013 NYU                      (Clement Farabet)
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2006      Idiap Research Institute (Samy Bengio)
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+Copyright (c) 2015      Google Inc.
+Copyright (c) 2015      Yangqing Jia
+Copyright (c) 2013-2016 The Caffe contributors
+All rights reserved.
+
+Various files include modifications (c) NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+
+GOVERNING TERMS: The software and materials are governed by the NVIDIA Software License Agreement
+(found at https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-software-license-agreement/)
+and the Product-Specific Terms for NVIDIA AI Products
+(found at https://www.nvidia.com/en-us/agreements/enterprise-software/product-specific-terms-for-ai-products/).
+
+NOTE: CUDA Forward Compatibility mode ENABLED.
+  Using CUDA 13.1 driver version 590.48.01 with kernel driver version 580.159.03.
+  See https://docs.nvidia.com/deploy/cuda-compatibility/ for details.
+
+gate      9216x 2560  marlin iso     57.15 us str     55.89 us   213.3 GB/s  err vs own ref 1.65e-03  vs bf16 0.1132 | torch linear bf16 iso    279.36 us str    279.99 us
+up        9216x 2560  marlin iso     57.15 us str     55.39 us   213.3 GB/s  err vs own ref 1.68e-03  vs bf16 0.1176 | torch linear bf16 iso    278.34 us str    276.16 us
+down      2560x 9216  marlin iso     57.31 us str     54.64 us   212.7 GB/s  err vs own ref 1.68e-03  vs bf16 0.1176 | torch linear bf16 iso    205.63 us str    205.28 us
+qkv       8192x 2560  marlin iso     52.03 us str     49.01 us   208.2 GB/s  err vs own ref 1.63e-03  vs bf16 0.1224 | torch linear bf16 iso    248.67 us str    246.73 us
+z         4096x 2560  marlin iso     28.48 us str     26.12 us   190.3 GB/s  err vs own ref 1.66e-03  vs bf16 0.1212 | torch linear bf16 iso    127.92 us str    125.35 us
+out       2560x 4096  marlin iso     29.50 us str     26.99 us   183.7 GB/s  err vs own ref 1.63e-03  vs bf16 0.1231 | torch linear bf16 iso    128.83 us str    126.28 us
+q         8192x 2560  marlin iso     52.03 us str     48.87 us   208.2 GB/s  err vs own ref 1.67e-03  vs bf16 0.1166 | torch linear bf16 iso    249.66 us str    247.90 us
+INFO 11-15 06:01:50 [marlin_utils.py:451] Marlin kernel can achieve better performance for small size_n with experimental use_atomic_add feature. You can consider set environment variable VLLM_MARLIN_USE_ATOMIC_ADD to 1 if possible.
+k         1024x 2560  marlin iso     12.10 us str      9.88 us   112.3 GB/s  err vs own ref 1.63e-03  vs bf16 0.1190 | torch linear bf16 iso     36.67 us str     34.09 us
+v         1024x 2560  marlin iso     12.10 us str      9.83 us   112.3 GB/s  err vs own ref 1.62e-03  vs bf16 0.1183 | torch linear bf16 iso     36.67 us str     34.11 us
+o         2560x 4096  marlin iso     28.67 us str     26.43 us   189.0 GB/s  err vs own ref 1.64e-03  vs bf16 0.1213 | torch linear bf16 iso    129.01 us str    126.25 us
+lmhead  248320x 2560  marlin iso   1393.47 us str   1389.59 us   235.6 GB/s  err vs own ref 1.66e-03  vs bf16 0.1286 | torch linear bf16 iso   7311.20 us str   7289.76 us
