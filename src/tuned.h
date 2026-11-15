@@ -10,6 +10,6 @@ struct VecConfig {
     bool x_shared, persistent;
 };
 
-constexpr VecConfig kV2{256, 1, 1, false, false};  // t256_r1_u1_xg_full
-constexpr VecConfig kV3{256, 1, 2, false, false};  // t256_r1_u2_xg_full
+constexpr VecConfig kV2{128, 1, 1, false, false};  // t128_r1_u1_xg_full
+constexpr VecConfig kV3{128, 1, 4, false, false};  // t128_r1_u4_xg_full
 constexpr VecConfig kV4{128, 1, 2, false, false};  // t128_r1_u2_xg_full
