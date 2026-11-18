@@ -279,7 +279,7 @@ e2eprof)
             --profile-decode 256 --out "$out/profile_$label.json" > "$out/profile_$label.log" 2>&1 || true
         [ -s "$out/profile_$label.json" ] && [ -s ~/tmp/en605617/e2e/decode_$label.nsys-rep ] \
             || { echo "profile of $label failed" >&2; exit 1; }
-        nsys stats --force-export=true --report cuda_gpu_kern_sum --format csv \
+        nsys stats --force-export=true --report cuda_gpu_kern_sum,cuda_gpu_kern_gb_sum --format csv \
             -o "$out/profile_$label" ~/tmp/en605617/e2e/decode_$label.nsys-rep > /dev/null
         grep -E "profiled" "$out/profile_$label.log"
     done
