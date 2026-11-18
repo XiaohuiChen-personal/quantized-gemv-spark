@@ -14,6 +14,14 @@ model's "attention sink" activations), and two predictions from the weights:
           (the same expectation for an x whose channels have the measured mean squares
            m_k and are uncorrelated: how far channel outliers alone move the error)
 
+and an exact decomposition of the pooled error, pooled = pred * sqrt(h / g), with
+
+  g = sum_t ||W x_t||^2 / (sum_t ||x_t||^2 * ||W||_F^2 / K)          signal gain
+  h = sum_t ||dW x_t||^2 / (sum_t ||x_t||^2 * ||dW||_F^2 / K)        noise gain
+
+both 1 in expectation for isotropic x: g < 1 means the real inputs avoid the directions
+W amplifies (less output signal), h != 1 that they line up with the rounding error.
+
 Activation statistics per site: peak |x| / RMS(x) and the share of ||x||^2 in the 8 largest
 channels (medians over tokens).
 
@@ -92,7 +100,11 @@ def errors(raw, M, K, xb):
         cd4 += (dw4 * dw4).sum(0)
         cw += (w64 * w64).sum(0)
     m = (X * X).mean(1)
+    xx = float((X * X).sum())
+    iso = xx / K  # sum_t ||x_t||^2 / K
     return {"yy": yy, "e8": e8, "e4": e4, "r8": np.sqrt(e8 / yy), "r4": np.sqrt(e4 / yy),
+            "signal_gain": yy.sum() / (iso * cw.sum()), "noise_gain_int8": e8.sum() / (iso * cd8.sum()),
+            "noise_gain_int4": e4.sum() / (iso * cd4.sum()),
             "pred_int8": np.sqrt(cd8.sum() / cw.sum()), "pred_int4": np.sqrt(cd4.sum() / cw.sum()),
             "wpred_int8": np.sqrt((m * cd8).sum() / (m * cw).sum()), "wpred_int4": np.sqrt((m * cd4).sum() / (m * cw).sum())}
 
@@ -116,7 +128,7 @@ def summarize(r, pos):
         out[f"{f}_pooled_pos1"] = float(np.sqrt(ee[keep].sum() / r["yy"][keep].sum()))
         out[f"{f}_max_pos1"] = float(rr[keep].max())
         out[f"n_{f}_over"] = int((rr > THRESH[f]).sum())
-    for k in ("pred_int8", "pred_int4", "wpred_int8", "wpred_int4"):
+    for k in ("pred_int8", "pred_int4", "wpred_int8", "wpred_int4", "signal_gain", "noise_gain_int8", "noise_gain_int4"):
         out[k] = float(r[k])
     return out
 
@@ -177,7 +189,8 @@ def run(a):
               f"{row['int4_p95']:.4f} max {row['int4_max']:.4f} (gauss {g4:.4f}, pred {row['pred_int4']:.4f}, wpred "
               f"{row['wpred_int4']:.4f}) | int8 pooled {row['int8_pooled']:.5f} max {row['int8_max']:.5f} | x peak/rms "
               f"{row['x_peak_over_rms_median']:.1f} (max {row['x_peak_over_rms_max']:.1f}) [{time.time() - t0:.0f} s]", flush=True)
-    comment = (f"scripts/real_x_accuracy.py: real inputs from {rx.man['text']['repo']}@{rx.man['text']['revision']} "
+    git = os.popen("git describe --always --dirty 2>/dev/null").read().strip() or "unknown"
+    comment = (f"scripts/real_x_accuracy.py at {git}: real inputs from {rx.man['text']['repo']}@{rx.man['text']['revision']} "
                f"(test split), {len(rx.man['windows'])} windows x {rx.L} tokens, model {rx.man['model']}")
     write_csv(os.path.join(out_dir, "benchmarked.csv"), bench_rows, comment)
     with gzip.open(os.path.join(out_dir, "per_token.csv.gz"), "wt") as f:

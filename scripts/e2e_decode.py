@@ -89,7 +89,7 @@ def main():
                    "prompt_tokens": P, "decode_tokens": a.profile_decode, "wall_s": t, "first_token_s": first,
                    "multiprocessing": os.environ.get("VLLM_ENABLE_V1_MULTIPROCESSING")}, open(a.out, "w"), indent=1)
         print(f"[{a.label}] profiled one request of 1 + {a.profile_decode} tokens in {t:.3f} s", flush=True)
-        return
+        finish()
 
     result = {"label": a.label, "model": a.model, "quantization": quant, "git": text_data.git_desc(),
               "vllm": vllm.__version__, "torch": torch.__version__, "device": torch.cuda.get_device_name(0),
@@ -135,6 +135,16 @@ def main():
         print(f"[{a.label}] WikiText-2 perplexity {result['ppl']['perplexity']:.4f} over {n} scored tokens", flush=True)
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
     json.dump(result, open(a.out, "w"), indent=1)
+    finish()
+
+
+def finish():
+    """Leave without interpreter teardown: vLLM 0.28's engine shutdown sometimes aborts
+    ("terminate called without an active exception") after all results are written, which
+    would turn a complete run into a failed exit status. The container stops every process."""
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(0)
 
 
 if __name__ == "__main__":

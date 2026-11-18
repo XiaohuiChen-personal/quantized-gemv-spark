@@ -171,14 +171,16 @@ ncu)
     # DRAM; clocks are left as they are (--clock-control none). The GB10 has no dram__*
     # counters: DRAM reads are the L2 sectors filled from system memory.
     rep=~/tmp/en605617/ncu/ncu_final
+    status=0
     sudo -n env OMP_WAIT_POLICY=PASSIVE "$(command -v ncu)" --nvtx --nvtx-include "regex:^iso /" \
         --clock-control none --cache-control all \
         --section SpeedOfLight --section LaunchStats --section Occupancy --section WarpStateStats \
         --section MemoryWorkloadAnalysis \
         --metrics lts__d_sectors_fill_sysmem.sum,lts__t_sectors_aperture_sysmem_op_read_lookup_miss.sum,lts__t_sectors_op_read.sum,lts__t_sectors_op_write.sum,lts__t_bytes.sum,gpu__time_duration.sum,smsp__inst_executed.sum \
         -f -o "$rep" ./build/bench --mode ncu --only gate,down,qkv,z,out,k,lmhead \
-        --out results/ncu/bench_under_ncu.csv > results/ncu/bench_under_ncu.log 2>&1
-    sudo -n chown -R "$(id -u):$(id -g)" results/ncu ~/tmp/en605617/ncu
+        --out results/ncu/bench_under_ncu.csv > results/ncu/bench_under_ncu.log 2>&1 || status=$?
+    sudo -n chown -R "$(id -u):$(id -g)" results/ncu ~/tmp/en605617/ncu  # root-owned outputs back to this user
+    [ "$status" -eq 0 ] || { echo "profiled run failed ($status)" >&2; exit "$status"; }
     ncu --import "$rep.ncu-rep" --csv --page raw --print-units base > results/ncu/ncu_raw.csv
     python3 scripts/ncu_summary.py results/ncu/ncu_raw.csv results/ncu/bench_under_ncu.csv \
         --csv results/ncu/summary.csv > results/ncu/summary.md
@@ -212,11 +214,12 @@ e2e)
     mkdir -p "$out" data/ckpt ~/tmp/en605617/e2e
     [ -f data/wikitext2_test.txt ] || python3 scripts/fetch_extras.py
     env_report > "$out/env.txt"
-    for b in 4 8; do
-        if [ ! -f data/ckpt/int$b/quantization_info.json ]; then
-            python3 scripts/make_quant_checkpoint.py --bits $b --out data/ckpt/int$b --verify-data data \
-                > "$out/ckpt_int$b.log" 2>&1
-        fi
+    for b in 4 8; do  # rebuilt every time (about 30 s each), so a checkpoint never comes from older code
+        rm -rf "data/ckpt/int$b"
+        python3 scripts/make_quant_checkpoint.py --bits $b --out data/ckpt/int$b --verify-data data \
+            > "$out/ckpt_int$b.log" 2>&1
+        python3 scripts/make_quant_checkpoint.py --bits $b --out data/ckpt/int$b --verify-data data --verify-only \
+            >> "$out/ckpt_int$b.log" 2>&1
         cp data/ckpt/int$b/quantization_info.json "$out/ckpt_int$b.json"
     done
     bf16=/hf/hub/models--Qwen--Qwen3.5-4B/snapshots/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
@@ -231,8 +234,11 @@ e2e)
             if [ -n "$(nvidia-smi --query-compute-apps=pid --format=csv,noheader)" ]; then
                 echo "another process is using the GPU before $label run $run" >&2; exit 1
             fi
+            st=0
             docker_py scripts/e2e_decode.py --model "$model" --label "$label" --reps 5 --warmup 2 \
-                --out "$out/${label}_run$run.json" > "$out/${label}_run$run.log" 2>&1
+                --out "$out/${label}_run$run.json" > "$out/${label}_run$run.log" 2>&1 || st=$?
+            [ -s "$out/${label}_run$run.json" ] || { echo "$label run $run failed (exit $st), no result" >&2; exit 1; }
+            [ "$st" -eq 0 ] || echo "$label run $run: exit status $st after its result was written"
             grep -E "decode tokens/s|perplexity" "$out/${label}_run$run.log"
         done
     done
@@ -255,7 +261,9 @@ e2e)
             profile --trace=cuda,nvtx --cuda-graph-trace=node --capture-range=cudaProfilerApi \
             --capture-range-end=stop --sample=none --cpuctxsw=none --force-overwrite=true -o "/prof/decode_$label" \
             python3 scripts/e2e_decode.py --model "$model" --label "$label" --contexts 128 --warmup 2 \
-            --profile-decode 256 --out "$out/profile_$label.json" > "$out/profile_$label.log" 2>&1
+            --profile-decode 256 --out "$out/profile_$label.json" > "$out/profile_$label.log" 2>&1 || true
+        [ -s "$out/profile_$label.json" ] && [ -s ~/tmp/en605617/e2e/decode_$label.nsys-rep ] \
+            || { echo "profile of $label failed" >&2; exit 1; }
         nsys stats --force-export=true --report cuda_gpu_kern_sum --format csv \
             -o "$out/profile_$label" ~/tmp/en605617/e2e/decode_$label.nsys-rep > /dev/null
         grep -E "profiled" "$out/profile_$label.log"

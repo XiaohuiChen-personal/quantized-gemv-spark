@@ -20,11 +20,20 @@ embedding (tied to the LM head, so the LM head stays BF16), norms, the DeltaNet
 conv1d/A_log/dt_bias and its small in_proj_a/in_proj_b, the vision encoder and the MTP
 head -- is copied byte for byte. vLLM finds the quantized layers from the integer dtypes.
 
-With --verify-data, the codes and scales of every matrix that bench exports (data/) are
-unpacked again and compared with data/<id>.int4.bin / .int8.bin and their scales, bit for
-bit, so the served model uses exactly the operands the kernels were timed and checked on.
+With --verify-data, the codes and scales of the ten benchmarked layer matrices (data/;
+the LM head stays BF16) are unpacked again and compared with data/<id>.int4.bin /
+.int8.bin and their scales, bit for bit, so the checkpoint holds exactly the operands the
+kernels were timed and checked on. vLLM then keeps the codes as they are but stores the
+scales in the model's dtype (BF16 here), a rounding of at most 2^-9 relative per scale.
+
+--verify-only re-reads a written checkpoint from its files and dequantizes the same ten
+matrices with the AutoGPTQ formula, independent of this script's packing code:
+w[k, n] = scales[g_idx[k], n] * (((qweight[k // P, n] >> b (k % P)) & mask) - (zero + 1)),
+zero = the qzeros field of the group (P = 32 / b values per int32, b bits), and compares
+the result with scripts/quantize.py's dequantization of data/'s codes.
 
 Usage: python3 scripts/make_quant_checkpoint.py --bits 4 --out <dir> [--snapshot S] [--verify-data data]
+       python3 scripts/make_quant_checkpoint.py --bits 4 --out <dir> --verify-data data --verify-only
 """
 import argparse
 import hashlib
@@ -118,13 +127,63 @@ class ShardWriter:
         return self.off
 
 
+def read_tensor(d, wmap, name):
+    """One tensor of a written checkpoint, through its safetensors header (no packing code)."""
+    fname = wmap[name]
+    hdr, base = ew.read_header(os.path.join(d, fname))
+    t = hdr[name]
+    dt, size = DT[t["dtype"]]
+    lo, hi = t["data_offsets"]
+    mm = np.memmap(os.path.join(d, fname), dtype=np.uint8, mode="r")
+    return np.frombuffer(mm[base + lo:base + hi], dtype=dt).reshape(t["shape"])
+
+
+def verify_files(a):
+    """Independent check of a written checkpoint against data/ (see the module docstring)."""
+    wmap = json.load(open(os.path.join(a.out, "model.safetensors.index.json")))["weight_map"]
+    per, mask = 32 // a.bits, (1 << a.bits) - 1
+    results = []
+    for m in json.load(open(os.path.join(a.verify_data, "manifest.json")))["matrices"]:
+        stem = m["tensor"][: -len(".weight")]
+        if f"{stem}.qweight" not in wmap:
+            continue  # the LM head (tied embedding) is not quantized
+        M, K = m["M"], m["K"]
+        qw = read_tensor(a.out, wmap, f"{stem}.qweight").view(np.uint32)
+        sc = read_tensor(a.out, wmap, f"{stem}.scales").astype(np.float32)
+        qzw = read_tensor(a.out, wmap, f"{stem}.qzeros").view(np.uint32)
+        gi = read_tensor(a.out, wmap, f"{stem}.g_idx").astype(np.int64)
+        k = np.arange(K)
+        codes = (qw[k // per, :] >> (np.uint32(a.bits) * (k % per)).astype(np.uint32)[:, None]) & np.uint32(mask)  # [K, M]
+        n = np.arange(M)
+        zeros = (qzw[:, n // per] >> (np.uint32(a.bits) * (n % per)).astype(np.uint32)[None, :]) & np.uint32(mask)  # [G, M]
+        w = sc[gi, :] * (codes.astype(np.float32) - (zeros[gi, :].astype(np.float32) + 1))  # [K, M]
+        if a.bits == 4:
+            ref = qz.dequant_int4(np.fromfile(os.path.join(a.verify_data, f"{m['id']}.int4.bin"), np.uint8).reshape(M, K // 2),
+                                  np.fromfile(os.path.join(a.verify_data, f"{m['id']}.int4.scale.bin"), np.float16).reshape(M, K // qz.GROUP))
+        else:
+            ref = qz.dequant_int8(np.fromfile(os.path.join(a.verify_data, f"{m['id']}.int8.bin"), np.int8).reshape(M, K),
+                                  np.fromfile(os.path.join(a.verify_data, f"{m['id']}.int8.scale.bin"), np.float16))
+        ok = np.array_equal(w.T, ref)
+        results.append((m["id"], ok))
+        print(f"{m['id']:7s} {M}x{K} read back from {wmap[f'{stem}.qweight']}: {'identical' if ok else 'DIFFERENT'} "
+              f"to quantize.py's dequantization of data/{m['id']}", flush=True)
+    good = sum(ok for _, ok in results)
+    print(f"independent read-back: {good}/{len(results)} matrices identical")
+    if good != len(results) or not results:
+        sys.exit(1)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--bits", type=int, choices=(4, 8), required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--snapshot")
     ap.add_argument("--verify-data")
+    ap.add_argument("--verify-only", action="store_true")
     a = ap.parse_args()
+    if a.verify_only:
+        verify_files(a)
+        return
     snap = ew.find_snapshot(a.snapshot)
     with open(os.path.join(snap, "model.safetensors.index.json")) as f:
         wmap = json.load(f)["weight_map"]
@@ -182,7 +241,9 @@ def main():
     for f in os.listdir(snap):  # tokenizer, chat template, processor configs, licence
         if not f.endswith(".safetensors") and f not in ("config.json", "model.safetensors.index.json"):
             shutil.copy(os.path.join(snap, f), os.path.join(a.out, f))
-    info = {"source": f"{ew.REPO}@{ew.REVISION}", "bits": a.bits, "quantized_matrices": n_q, "copied_tensors": n_copy,
+    info = {"source": f"{ew.REPO}@{ew.REVISION}", "bits": a.bits,
+            "git": os.popen("git describe --always --dirty 2>/dev/null").read().strip() or "unknown",
+            "writer_sha256": hashlib.sha256(open(os.path.abspath(__file__), "rb").read()).hexdigest(), "quantized_matrices": n_q, "copied_tensors": n_copy,
             "total_bytes": total, "verified_against_data": verified,
             "files": {f: hashlib.sha256(open(os.path.join(a.out, f), "rb").read()).hexdigest()
                       for f in sorted(os.listdir(a.out)) if f.endswith(".json")}}

@@ -714,7 +714,7 @@ class Analysis:
         tdec = [one(m, "v4").duration_us / one(m, "v4load").duration_us for m in big]
         cb, v2 = one("gate", "cublas"), one("gate", "v2")
         lt_gate = s[(s.matrix == "gate") & (s.kernel == "cublaslt") & (s.config == self.row("gate", "cublaslt").config)].iloc[0]
-        v0 = one("out", "v0")
+        v0, lm0 = one("out", "v0"), one("lmhead", "v0")
         self.md += ["## 17. Nsight Compute: DRAM traffic and occupancy (open item 8.2)", "",
                     "`results/ncu/` (`scripts/run_stage.sh ncu`, run with sudo because GPU counters are admin-only on this "
                     "machine): `bench --mode ncu` makes five isolated launches per (matrix, kernel) and only those are "
@@ -728,9 +728,10 @@ class Analysis:
                                  "SM busy": "{:.0%}", "inst / KB": "{:.0f}", "long-scoreboard share": "{:.2f}"}), "",
                     f"- **Every kernel reads what it stores, once.** DRAM read bytes / bytes the launch must read: "
                     f"{gemv.dram_over_stored.min():.3f}–{gemv.dram_over_stored.max():.3f} over all {len(gemv)} GEMV rows (v0 to "
-                    "cuBLASLt); no kernel re-reads weights from DRAM, so every rate difference is a difference in how fast "
-                    "the same bytes stream, and the stored-byte GB/s used throughout is the real DRAM traffic. (It also "
-                    "rules out a hidden cache benefit in the profiled launches.)",
+                    "cuBLASLt), with cold caches (the profiler flushes them): no kernel reads a weight from DRAM twice, so "
+                    "the bytes a kernel must read are the DRAM traffic it makes, and rate differences between kernels are "
+                    "differences in how fast the same bytes stream. In the timed runs, keeping the caches cold is the "
+                    "rotation's job (§14), not shown by these counters.",
                     f"- **INT4 decode costs instructions, not time.** v4 executes {min(dec):.1f}–{max(dec):.1f}× the warp "
                     f"instructions of its load-only variant per byte on gate/down/LM head, yet takes "
                     f"{min(tdec):.2f}–{max(tdec):.2f}× its time; the SM stays mostly idle (SM busy ≤ "
@@ -746,11 +747,16 @@ class Analysis:
                     f"{one('down', 'cublas').dram_gbps:.0f} GB/s profiled with the same occupancy. The remaining difference lies "
                     "in the template parameters (work per warp), which these counters do not resolve; §15's open question "
                     "stays open, narrowed to that.",
-                    f"- **v0 is slow because it has too few threads:** one thread per row is a grid of {v0.grid} blocks of "
-                    f"{v0.block} threads on `out` (48 SMs), {fmt_pct(v0.occupancy_pct / 100, 0)} occupancy, and its L2 read "
-                    "traffic equals its DRAM traffic, so the textbook \"uncoalesced\" penalty shows up here as too little "
-                    "parallelism, not as extra DRAM or L2 bytes (*reading:* each thread's sequential 2-byte loads are served "
-                    "from L1 after the first touch of a sector).",
+                    f"- **v0 (one thread per row):** on every matrix but the LM head (1024–9216 rows) it is too few threads — "
+                    f"{v0.grid} blocks of {v0.block} threads on `out` for 48 SMs, {fmt_pct(v0.occupancy_pct / 100, 0)} "
+                    f"occupancy — and its L2 read traffic equals its DRAM traffic ({v0.l2_read_bytes / v0.dram_read_bytes:.3f}×), "
+                    "so there the uncoalesced pattern costs parallelism, not bytes. On the LM head (248 320 rows) it has enough "
+                    f"warps ({lm0.grid} blocks, {fmt_pct(lm0.occupancy_pct / 100, 0)} occupancy) and still reaches only "
+                    f"{lm0.dram_gbps:.0f} GB/s profiled: its L2 reads are {lm0.l2_read_bytes / lm0.dram_read_bytes:.2f}× its DRAM "
+                    f"bytes and the top stall is `{lm0.top_stall}` (the load/store queue is full), so the uncoalesced pattern "
+                    "does cost traffic once enough warps run. (*Reading:* with few warps, a thread's next 2-byte loads hit the "
+                    "sector it already brought into L1; with many, the sector is evicted before the thread comes back for it "
+                    "and is fetched from L2 again.)",
                     f"- Kernel-replay profiling (caches flushed before every pass, each launch serialized with idle time "
                     f"around it) lengthens the kernels: profiled / Nsight Systems duration (§15) median "
                     f"{statistics.median(nsr):.2f}, range {min(nsr):.2f}–{max(nsr):.2f} over the ladder rows, the most for the "
@@ -771,7 +777,10 @@ class Analysis:
                           "INT4 pooled": b.int4_pooled, "INT4 median": b.int4_median, "INT4 p95": b.int4_p95,
                           "INT4 max": b.int4_max, "Gaussian x": b.gauss_int4, "predicted": b.pred_int4,
                           "weighted pred.": b.wpred_int4, "x peak/RMS": b.x_peak_over_rms_median})
-        pc = {c: "{:.2%}" for c in t.columns if c not in ("matrix", "input", "x peak/RMS")} | {"x peak/RMS": "{:.1f}"}
+        if "signal_gain" in b:
+            t["g"], t["h (INT4)"] = b.signal_gain, b.noise_gain_int4
+        pc = {c: "{:.2%}" for c in t.columns if c not in ("matrix", "input", "x peak/RMS", "g", "h (INT4)")} | \
+            {"x peak/RMS": "{:.1f}", "g": "{:.2f}", "h (INT4)": "{:.2f}"}
         hyp = b[b.matrix.isin(HYP_MATS)]
         lines = ["## 18. Accuracy with real activations (open item 8.3)", "",
                  "`results/accuracy/real_x/` (`scripts/run_stage.sh realx`): the BF16 model (transformers, in the vLLM "
@@ -781,7 +790,9 @@ class Analysis:
                  + " and every large linear layer's input is recorded at every position (each position is one decode-step "
                  "input). Errors use the same quantizer and double precision; `pooled` = √(Σₜ‖ΔW xₜ‖² / Σₜ‖W xₜ‖²) over "
                  "all tokens, `weighted pred.` = √(Σₖ mₖ‖δ₍:,ₖ₎‖² / Σₖ mₖ‖w₍:,ₖ₎‖²) with mₖ = mean xₖ² (the Gaussian "
-                 "prediction with the measured per-channel energy), `x peak/RMS` = median over tokens of max|x| / RMS(x).", "",
+                 "prediction with the measured per-channel energy), `x peak/RMS` = median over tokens of max|x| / RMS(x); "
+                 "`g` and `h` (when present) are the signal and noise gains of the exact decomposition pooled = predicted × "
+                 "√(h / g): g = Σₜ‖W xₜ‖² / (Σₜ‖xₜ‖² ‖W‖²_F / K), h the same for ΔW, both 1 for isotropic x.", "",
                  md_table(t, pc), ""]
         lines += [f"- On the nine hypothesis matrices the pooled real-x error is INT8 {fmt_pct(hyp.int8_pooled.min(), 2)}–"
                   f"{fmt_pct(hyp.int8_pooled.max(), 2)} and INT4 {fmt_pct(hyp.int4_pooled.min(), 2)}–{fmt_pct(hyp.int4_pooled.max(), 2)} "
@@ -809,16 +820,29 @@ class Analysis:
                          f"{int((a.n_int4_over > 0).sum())} matrices); above 2% INT8: {int(a.n_int8_over.sum())}; "
                          f"pooled real-x / Gaussian-x INT4 error: median {(a.int4_pooled / a.gauss_int4).median():.2f}, range "
                          f"{(a.int4_pooled / a.gauss_int4).min():.2f}–{(a.int4_pooled / a.gauss_int4).max():.2f}.")
+            if "signal_gain" in a:
+                bys = a.groupby("site").agg(n=("short", "size"), pooled=("int4_pooled", "median"), g=("signal_gain", "median"),
+                                            h=("noise_gain_int4", "median"), over=("n_int4_over", "sum"),
+                                            above=("int4_pooled", lambda v: int((v > 0.15).sum()))).reset_index()
+                lines.append("- By input (all layers; medians over the matrices of each input type): " + "; ".join(
+                    f"{r.site} ({r.n}): pooled INT4 {fmt_pct(r.pooled, 1)}, g {r.g:.2f}, h {r.h:.2f}, tokens > 15% {int(r.over)}, "
+                    f"matrices pooled > 15% {r.above}" for _, r in bys.iterrows()) + ". The attention output projections "
+                    "(`attn_out_in`: o_proj, out_proj) are where real inputs raise the error, and the decomposition says why: "
+                    "their inputs excite W less than an isotropic input of the same norm (g < 1) while the rounding noise is "
+                    "excited about as usual (h ≈ 1), so the output signal shrinks relative to the noise. The input-side "
+                    "projections show the opposite (g > 1).")
         gp = os.path.join(d, "gpu_check.csv")
         if os.path.exists(gp):
             g = read(gp)
             q = g[g.fmt != "bf16"]
             bad = g[(g.check_pass != "pass") | (g.check_rad_pass != "pass") | (g.recheck_pass != "pass") | (g.bitwise_same != 1)]
-            dev = (q.gpu_rel_err / q.numpy_rel_err - 1).abs()
+            ex = q.gpu_rel_err / q.expected_gpu_err
             lines.append(f"- GPU kernels on real x (`gpu_check.csv`: v0–v4 and cuBLAS on two real tokens per matrix — the "
                          f"median-error and the worst-error token): {len(g) - len(bad)} of {len(g)} rows pass every correctness "
-                         f"check; the v3/v4 GPU output errors agree with NumPy within {fmt_pct(dev.max(), 1)} (relative; the GPU "
-                         "output adds BF16 rounding).")
+                         "check. The GPU output errors of v3/v4 equal the NumPy errors combined with the BF16 rounding of the "
+                         "output (measured by v2 on the same x, added in quadrature): GPU / expected "
+                         f"{ex[q.fmt == 'int8'].min():.3f}–{ex[q.fmt == 'int8'].max():.3f} (INT8) and "
+                         f"{ex[q.fmt == 'int4'].min():.3f}–{ex[q.fmt == 'int4'].max():.3f} (INT4).")
         lines += ["- Reading: H3 is pre-registered for random x and its verdict stands; these numbers say how far that "
                   "result transfers to the inputs the model actually produces. They are still per-matrix output errors, "
                   "not model quality; §19 gives the perplexity of the whole quantized model.", ""]
@@ -884,7 +908,7 @@ class Analysis:
             row["GEMV model tok/s"] = 1e6 / tm
             row["GEMV model"] = models[f][0]
             row["byte ceiling tok/s"] = PROPOSAL_REF * 1e9 / by
-            row["GEMV share of decode, P=" + str(Ps[0])] = (tm / 1e3) / med[(med.format == f) & (med.P == Ps[0])].iloc[0].pipe(lambda m: 1e3 / m.tok_s)
+            row["GEMV model / measured time, P=" + str(Ps[0])] = (tm / 1e3) / med[(med.format == f) & (med.P == Ps[0])].iloc[0].pipe(lambda m: 1e3 / m.tok_s)
             row["perplexity"] = med[med.format == f].ppl.median()
             tab.append(row)
         t = pd.DataFrame(tab)
@@ -904,7 +928,7 @@ class Analysis:
                 ck[b] = json.load(open(cp))
         r0 = res[0]
         fmtc = {c: "{:.1f}" for c in t.columns if "tok/s" in c} | {"perplexity": "{:.3f}"} | \
-            {c: "{:.0%}" for c in t.columns if c.startswith("GEMV share")}
+            {c: "{:.0%}" for c in t.columns if c.startswith("GEMV model /")}
         self.md += ["## 19. End-to-end decode in vLLM (open item 8.4)", "",
                     f"`results/e2e/` (`scripts/run_stage.sh e2e`): vLLM {r0['vllm']} ({r0['device']}), batch 1, greedy, "
                     "prefix caching off, CUDA graphs on, prompt = the first P tokens of the WikiText-2 test text, "
@@ -913,20 +937,75 @@ class Analysis:
                     f"{int(med.n.max())} executions (separate processes, formats in shuffled order), median shown with the "
                     "range. The INT8/INT4 checkpoints are written by `scripts/make_quant_checkpoint.py` from this project's "
                     "quantizer in GPTQ format (served by vLLM's Marlin kernels); every large layer matrix is quantized "
-                    + (f"({ck[4]['quantized_matrices']} matrices; the 11 benchmarked ones verified bit-exact against the kernels' "
-                       "operands)" if 4 in ck else "")
+                    + (f"({ck[4]['quantized_matrices']} matrices; the codes and scales of the ten benchmarked layer "
+                       "matrices are bit-identical to the kernels' operands, checked twice — by the writer and by an "
+                       "independent read-back of the files; vLLM then stores the FP16 scales in BF16, a rounding of at "
+                       "most 2⁻⁹ per scale)" if 4 in ck else "")
                     + ", the tied embedding/LM head and the small tensors stay BF16. Perplexity: WikiText-2 test, "
-                    f"{r0['ppl']['windows']} windows of {r0['ppl']['window_len']} tokens. GEMV model: the sum of the measured "
-                    "streamed times (§12) of the kernels vLLM actually uses for each format; byte ceiling: 241 GB/s ÷ the "
-                    "weight bytes one token reads in that checkpoint.", "",
+                    f"{r0['ppl']['windows']} windows of {r0['ppl']['window_len']} tokens. `GEMV model`: the sum, over one "
+                    "token's large GEMVs, of the streamed times measured in this project (§12) — cuBLAS BF16 for the BF16 "
+                    "model and the LM head, Marlin (vLLM 0.16, §7) for the INT4 layers, and my v3 as a stand-in for the "
+                    "INT8 layers (no Marlin INT8 timing exists); vLLM also fuses gate/up and q/k/v into single GEMVs, so it "
+                    "is a model, not a measurement. The measured kernel breakdown follows the table. Byte ceiling: 241 GB/s "
+                    "÷ the weight bytes one token reads in that checkpoint.", "",
                     md_table(t, fmtc), "",
                     f"- INT4 with my v4 kernels in place of Marlin would give a GEMV model of {1e6 / tm4:.1f} tokens/s "
                     "(Marlin and v4 run at the same speed, §7).",
                     "- Greedy continuations (P = " + str(Ps[0]) + ", execution 1): " + "; ".join(agree) + ".",
-                    "- Reading: `GEMV share` is the GEMV model's time per token over the measured time per token; the rest "
-                    "is what the kernel benchmark leaves out (attention and DeltaNet state, norms, sampling over 248 320 "
-                    "logits, launch and scheduling overhead). Quantizing the layers leaves the BF16 LM head (1.27 GB, the "
+                    "- Reading: `GEMV model / measured time` compares the kernel-benchmark prediction with the engine; "
+                    "what the benchmark leaves out (attention and DeltaNet state, norms, sampling over 248 320 logits, launch "
+                    "and scheduling overhead) is measured directly in the kernel breakdown below. Quantizing the layers leaves the BF16 LM head (1.27 GB, the "
                     "largest single read) in place, which caps INT4's gain in this checkpoint.", ""]
+        self.e2e_kernels()
+
+    @staticmethod
+    def kernel_class(name):
+        if "marlin::Marlin" in name:
+            return "Marlin GEMV"
+        if name.startswith("triton_"):  # torch.compile fusions (norms, activations, copies); names may mention marlin_gemm
+            return "other"
+        if re.search(r"gemv|gemm|cutlass|cublas|splitKreduce|dot_kernel", name, re.I):
+            return "cuBLAS GEMV/GEMM"
+        if re.search(r"gated_delta|causal_conv1d|chunk_|fused_recurrent", name):
+            return "DeltaNet"
+        if re.search(r"flash|attention|reshape_and_cache", name, re.I):
+            return "attention"
+        return "other"
+
+    def e2e_kernels(self):
+        import json
+        rows, cats = [], ["Marlin GEMV", "cuBLAS GEMV/GEMM", "DeltaNet", "attention", "other"]
+        for f in ("bf16", "int8", "int4"):
+            kp = os.path.join(self.R, "e2e", f"profile_{f}_cuda_gpu_kern_sum.csv")
+            jp = os.path.join(self.R, "e2e", f"profile_{f}.json")
+            if not (os.path.exists(kp) and os.path.exists(jp)):
+                continue
+            k = pd.read_csv(kp)
+            j = json.load(open(jp))
+            n = j["decode_tokens"]
+            k["cls"] = k["Name"].map(self.kernel_class)
+            ms = k.groupby("cls")["Total Time (ns)"].sum() / 1e6 / n
+            row = {"format": f.upper()} | {f"{c} ms/token": float(ms.get(c, 0.0)) for c in cats}
+            tot = float(ms.sum())
+            row["GPU ms/token"] = tot
+            row["wall ms/token (profiled)"] = 1e3 * j["wall_s"] / n
+            row["GPU busy"] = tot / row["wall ms/token (profiled)"]
+            row["large-GEMV share of GPU time"] = (row["Marlin GEMV ms/token"] + row["cuBLAS GEMV/GEMM ms/token"]) / tot
+            row["prefill + first token share"] = j["first_token_s"] / j["wall_s"]
+            rows.append(row)
+        if not rows:
+            return
+        t = pd.DataFrame(rows)
+        self.e2e_k = t
+        self.md += ["GPU kernel breakdown of one decode request (P = 128, 1 + 256 tokens) per format, under Nsight Systems "
+                    "(`results/e2e/profile_*`; CUDA-graph kernels traced individually; vLLM engine in-process). Kernels "
+                    "are grouped by name: Marlin = the quantized layers; cuBLAS = every BF16 layer in the BF16 model and "
+                    "only the LM head in the INT8/INT4 checkpoints; `other` = norms, activations, rotary, sampling, "
+                    "copies (mostly torch.compile Triton fusions). Per generated token; the one prefill is inside the "
+                    "window (last column).", "",
+                    md_table(t, {c: "{:.3f}" for c in t.columns if "ms/token" in c} |
+                             {"GPU busy": "{:.0%}", "large-GEMV share of GPU time": "{:.1%}", "prefill + first token share": "{:.1%}"}),
+                    ""]
 
     # ------------------------------------------------------------ figures
     def save(self, fig, name, caption):

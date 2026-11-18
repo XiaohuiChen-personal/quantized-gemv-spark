@@ -124,6 +124,23 @@ scripts/run_stage.sh sweep      # accuracy of every large matrix of all 32 layer
 python3 scripts/analyze.py      # verdicts, tables, figures -> results/ANALYSIS.md
 ```
 
+Added after the freeze (the open items of the project plan; new result directories, the
+frozen results are not touched):
+
+```bash
+scripts/run_stage.sh xsample    # 256 random x for every large matrix of all layers (CPU)
+scripts/run_stage.sh ncu        # Nsight Compute: DRAM bytes, occupancy, stalls (sudo) -> results/ncu/
+python3 scripts/fetch_extras.py # tokenizer files at the pinned revision, WikiText-2 test text
+scripts/run_stage.sh realx      # real activations: capture, INT8/INT4 error, GPU kernels on real x
+scripts/run_stage.sh e2e        # INT8/INT4 GPTQ checkpoints from this quantizer; vLLM decode
+                                # tokens/s, perplexity and kernel breakdown -> results/e2e/
+```
+
+The model-level stages run in the `vllm/vllm-openai:v0.28.0-aarch64` image (vLLM 0.28,
+transformers 5.15); `scripts/make_quant_checkpoint.py` writes the INT8/INT4 checkpoints
+(GPTQ format, served by vLLM's Marlin kernels) from `scripts/quantize.py`, and checks the
+benchmarked matrices bit for bit against the kernels' operands.
+
 One benchmark pass by hand: `./build/bench --mode final --out results/x.csv` (also
 `--mode tune|quick|rotation`, `--only gate,lmhead`, `--seed N`, `--samples file.csv`).
 Nothing else should use the GPU while timing; on the GB10 the CPU shares the memory bus,
