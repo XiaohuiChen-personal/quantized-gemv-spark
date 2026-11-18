@@ -1,0 +1,8 @@
+[transformers] Token indices sequence length is longer than the specified maximum sequence length for this model (297193 > 262144). Running this sequence through the model will result in indexing errors
+Loading weights:   0%|          | 0/723 [00:00<?, ?it/s]Loading weights: 100%|██████████| 723/723 [00:00<00:00, 10509.38it/s]
+model loaded in 53 s; 297193 WikiText-2 test tokens
+window 0: tokens 0..512, loss 2.1823 (ppl 8.87), 129 sites [60 s]
+window 1: tokens 512..1024, loss 2.8224 (ppl 16.82), 129 sites [63 s]
+window 2: tokens 1024..1536, loss 2.7410 (ppl 15.50), 129 sites [67 s]
+window 3: tokens 1536..2048, loss 2.5497 (ppl 12.80), 129 sites [72 s]
+129 sites x 2048 tokens written to data/real_x in 74 s; perplexity over the windows 13.12

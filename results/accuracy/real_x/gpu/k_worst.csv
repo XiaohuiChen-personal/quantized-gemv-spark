@@ -1,0 +1,8 @@
+# utc=2026-11-18T22:34:04Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+matrix,M,K,fmt,kernel,config,copies,bytes_counted,iso_med_us,iso_p10_us,iso_p90_us,iso_min_us,spin_med_us,str_med_us,str_min_us,str_max_us,graph_launches,gbps_iso,gbps_str,host_enqueue_max_us,spin_covered,check_pass,check_rel_l2,check_worst_ratio,check_rad_pass,check_rad_rel_l2,recheck_pass,bitwise_same,acc_rel_vs_bf16,acc_maxabs_vs_bf16
+k,1024,2560,bf16,v0,t256,154,5250048,270.896,268.800,272.928,268.576,272.192,269.458,269.286,269.492,154,19.38,19.48,4.7,1,pass,1.569e-03,0.806,pass,1.680e-03,pass,1,1.568521e-03,7.117722e-03
+k,1024,2560,bf16,v1,t256,154,5250048,26.992,25.984,28.128,25.056,26.432,24.173,24.146,24.232,154,194.50,217.19,5.2,1,pass,1.569e-03,0.806,pass,1.680e-03,pass,1,1.568521e-03,7.117722e-03
+k,1024,2560,bf16,v2,t128_r1_u1_xg_full,154,5250048,25.632,25.056,26.976,24.128,25.904,23.530,23.496,23.554,154,204.82,223.12,4.8,1,pass,1.569e-03,0.806,pass,1.680e-03,pass,1,1.568521e-03,7.117722e-03
+k,1024,2560,bf16,cublas,GemmEx_OP_T_32F_DEFAULT,154,5250048,39.280,37.920,46.176,36.864,36.672,34.112,34.089,34.169,154,133.66,153.91,6.6,1,pass,1.569e-03,0.806,pass,1.680e-03,pass,1,1.568521e-03,7.117722e-03
+k,1024,2560,int8,v3,t128_r1_u4_xg_full,307,2630656,14.848,13.856,15.904,13.696,15.168,12.721,12.716,12.735,307,177.17,206.80,5.8,1,pass,1.557e-03,0.797,pass,1.475e-03,pass,1,1.234010e-02,3.783948e-02
+k,1024,2560,int4,v4,t128_r1_u2_xg_full,596,1358848,9.824,9.728,10.784,9.568,10.048,8.411,8.337,9.514,596,138.32,161.56,4.5,1,pass,1.612e-03,0.892,pass,1.662e-03,pass,1,1.772719e-01,6.493223e-01

@@ -1,0 +1,243 @@
+# utc=2026-11-18T22:33:52Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== down  model.language_model.layers.0.mlp.down_proj.weight  M=2560 K=9216
+  v0       bf16 t256                         x18  iso    979.26 us   48.2 GB/s | spin    980.83 | str    977.88 us   48.3 GB/s | pass
+  v1       bf16 t256                         x18  iso    213.36 us  221.3 GB/s | spin    213.86 | str    208.82 us  226.1 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x18  iso    205.15 us  230.1 GB/s | spin    205.66 | str    200.47 us  235.5 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x18  iso    209.41 us  225.4 GB/s | spin    206.69 | str    213.33 us  221.3 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x35  iso    105.71 us  223.5 GB/s | spin    105.28 | str    104.95 us  225.1 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x67  iso     57.78 us  211.0 GB/s | spin     58.21 | str     54.86 us  222.2 GB/s | pass
+
+results/accuracy/real_x/gpu/down_median.csv: 6 rows in 2 s; every check passed
+# utc=2026-11-18T22:33:55Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== down  model.language_model.layers.0.mlp.down_proj.weight  M=2560 K=9216
+  v0       bf16 t256                         x18  iso    981.09 us   48.1 GB/s | spin    980.80 | str    978.29 us   48.3 GB/s | pass
+  v1       bf16 t256                         x18  iso    213.55 us  221.1 GB/s | spin    214.85 | str    209.40 us  225.5 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x18  iso    206.02 us  229.2 GB/s | spin    206.66 | str    200.82 us  235.1 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x18  iso    210.30 us  224.5 GB/s | spin    207.68 | str    207.98 us  227.0 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x35  iso    104.74 us  225.5 GB/s | spin    105.28 | str    104.54 us  226.0 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x67  iso     57.71 us  211.2 GB/s | spin     58.18 | str     54.79 us  222.4 GB/s | pass
+
+results/accuracy/real_x/gpu/down_worst.csv: 6 rows in 2 s; every check passed
+# utc=2026-11-18T22:33:58Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== gate  model.language_model.layers.0.mlp.gate_proj.weight  M=9216 K=2560
+  v0       bf16 t256                         x18  iso    434.70 us  108.6 GB/s | spin    434.02 | str    431.58 us  109.4 GB/s | pass
+  v1       bf16 t256                         x18  iso    209.47 us  225.4 GB/s | spin    210.78 | str    205.46 us  229.8 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x18  iso    204.22 us  231.2 GB/s | spin    204.64 | str    199.98 us  236.1 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x18  iso    283.92 us  166.3 GB/s | spin    280.50 | str    277.81 us  169.9 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x35  iso    103.30 us  228.8 GB/s | spin    104.29 | str    102.60 us  230.4 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x67  iso     56.38 us  216.2 GB/s | spin     56.16 | str     54.67 us  223.0 GB/s | pass
+
+results/accuracy/real_x/gpu/gate_median.csv: 6 rows in 2 s; every check passed
+# utc=2026-11-18T22:34:00Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== gate  model.language_model.layers.0.mlp.gate_proj.weight  M=9216 K=2560
+  v0       bf16 t256                         x18  iso    441.66 us  106.9 GB/s | spin    438.08 | str    432.72 us  109.1 GB/s | pass
+  v1       bf16 t256                         x18  iso    209.74 us  225.1 GB/s | spin    209.87 | str    205.29 us  230.0 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x18  iso    204.13 us  231.3 GB/s | spin    204.61 | str    200.39 us  235.6 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x18  iso    283.87 us  166.3 GB/s | spin    281.01 | str    278.03 us  169.8 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x35  iso    103.98 us  227.3 GB/s | spin    103.79 | str    102.87 us  229.8 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x67  iso     56.48 us  215.8 GB/s | spin     56.13 | str     53.13 us  229.4 GB/s | pass
+
+results/accuracy/real_x/gpu/gate_worst.csv: 6 rows in 2 s; every check passed
+# utc=2026-11-18T22:34:02Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== k  model.language_model.layers.3.self_attn.k_proj.weight  M=1024 K=2560
+  v0       bf16 t256                         x154 iso    270.94 us   19.4 GB/s | spin    272.22 | str    269.30 us   19.5 GB/s | pass
+  v1       bf16 t256                         x154 iso     27.20 us  193.0 GB/s | spin     26.46 | str     25.46 us  206.2 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x154 iso     25.25 us  207.9 GB/s | spin     25.54 | str     23.52 us  223.2 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x154 iso     38.62 us  135.9 GB/s | spin     36.70 | str     34.08 us  154.1 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x307 iso     15.04 us  174.9 GB/s | spin     15.20 | str     12.73 us  206.7 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x596 iso      9.89 us  137.4 GB/s | spin     10.08 | str      8.32 us  163.2 GB/s | pass
+
+results/accuracy/real_x/gpu/k_median.csv: 6 rows in 2 s; every check passed
+# utc=2026-11-18T22:34:04Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== k  model.language_model.layers.3.self_attn.k_proj.weight  M=1024 K=2560
+  v0       bf16 t256                         x154 iso    270.90 us   19.4 GB/s | spin    272.19 | str    269.46 us   19.5 GB/s | pass
+  v1       bf16 t256                         x154 iso     26.99 us  194.5 GB/s | spin     26.43 | str     24.17 us  217.2 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x154 iso     25.63 us  204.8 GB/s | spin     25.90 | str     23.53 us  223.1 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x154 iso     39.28 us  133.7 GB/s | spin     36.67 | str     34.11 us  153.9 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x307 iso     14.85 us  177.2 GB/s | spin     15.17 | str     12.72 us  206.8 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x596 iso      9.82 us  138.3 GB/s | spin     10.05 | str      8.41 us  161.6 GB/s | pass
+
+results/accuracy/real_x/gpu/k_worst.csv: 6 rows in 2 s; every check passed
+# utc=2026-11-18T22:34:06Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== lmhead  model.language_model.embed_tokens.weight  M=248320 K=2560
+  v0       bf16 t256                         x2   iso  10901.92 us  116.7 GB/s | spin  10909.52 | str  10905.26 us  116.6 GB/s | pass
+  v1       bf16 t256                         x2   iso   5499.63 us  231.3 GB/s | spin   5505.39 | str   5487.85 us  231.8 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x2   iso   5382.99 us  236.3 GB/s | spin   5380.46 | str   5375.79 us  236.6 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x2   iso   7372.51 us  172.5 GB/s | spin   7366.06 | str   7359.67 us  172.8 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x2   iso   2685.22 us  237.1 GB/s | spin   2671.46 | str   2664.93 us  238.9 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x3   iso   1396.18 us  235.1 GB/s | spin   1392.99 | str   1380.62 us  237.8 GB/s | pass
+
+results/accuracy/real_x/gpu/lmhead_median.csv: 6 rows in 23 s; every check passed
+# utc=2026-11-18T22:34:30Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== lmhead  model.language_model.embed_tokens.weight  M=248320 K=2560
+  v0       bf16 t256                         x2   iso  10905.02 us  116.6 GB/s | spin  10915.65 | str  10933.47 us  116.3 GB/s | pass
+  v1       bf16 t256                         x2   iso   5493.98 us  231.5 GB/s | spin   5493.60 | str   5492.29 us  231.6 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x2   iso   5383.41 us  236.3 GB/s | spin   5380.96 | str   5378.45 us  236.5 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x2   iso   7374.10 us  172.5 GB/s | spin   7371.62 | str   7367.00 us  172.6 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x2   iso   2679.41 us  237.6 GB/s | spin   2666.91 | str   2665.38 us  238.9 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x3   iso   1392.91 us  235.7 GB/s | spin   1392.51 | str   1383.00 us  237.4 GB/s | pass
+
+results/accuracy/real_x/gpu/lmhead_worst.csv: 6 rows in 23 s; every check passed
+# utc=2026-11-18T22:34:53Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== o  model.language_model.layers.3.self_attn.o_proj.weight  M=2560 K=4096
+  v0       bf16 t256                         x39  iso    428.53 us   49.0 GB/s | spin    428.06 | str    426.03 us   49.3 GB/s | pass
+  v1       bf16 t256                         x39  iso     96.90 us  216.6 GB/s | spin     98.14 | str     93.43 us  224.6 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x39  iso     92.70 us  226.4 GB/s | spin     93.02 | str     89.13 us  235.5 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x39  iso    132.67 us  158.2 GB/s | spin    129.89 | str    126.86 us  165.4 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x77  iso     48.58 us  216.2 GB/s | spin     48.99 | str     45.71 us  229.8 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x149 iso     28.06 us  193.1 GB/s | spin     27.54 | str     25.86 us  209.6 GB/s | pass
+
+results/accuracy/real_x/gpu/o_median.csv: 6 rows in 2 s; every check passed
+# utc=2026-11-18T22:34:56Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== out  model.language_model.layers.0.linear_attn.out_proj.weight  M=2560 K=4096
+  v0       bf16 t256                         x39  iso    428.48 us   49.0 GB/s | spin    428.03 | str    426.02 us   49.3 GB/s | pass
+  v1       bf16 t256                         x39  iso     96.86 us  216.6 GB/s | spin     97.10 | str     93.34 us  224.8 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x39  iso     92.70 us  226.4 GB/s | spin     93.01 | str     91.44 us  229.5 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x39  iso    131.71 us  159.3 GB/s | spin    129.86 | str    126.93 us  165.3 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x77  iso     48.69 us  215.7 GB/s | spin     48.96 | str     45.70 us  229.9 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x149 iso     28.10 us  192.9 GB/s | spin     27.46 | str     25.26 us  214.6 GB/s | pass
+
+results/accuracy/real_x/gpu/out_median.csv: 6 rows in 2 s; every check passed
+# utc=2026-11-18T22:34:58Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== out  model.language_model.layers.0.linear_attn.out_proj.weight  M=2560 K=4096
+  v0       bf16 t256                         x39  iso    428.51 us   49.0 GB/s | spin    428.02 | str    426.08 us   49.3 GB/s | pass
+  v1       bf16 t256                         x39  iso     96.90 us  216.6 GB/s | spin     98.14 | str     93.54 us  224.3 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x39  iso     92.80 us  226.1 GB/s | spin     93.20 | str     89.15 us  235.4 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x39  iso    132.64 us  158.2 GB/s | spin    129.89 | str    129.79 us  161.7 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x77  iso     48.88 us  214.9 GB/s | spin     48.99 | str     46.63 us  225.3 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x149 iso     28.58 us  189.7 GB/s | spin     27.49 | str     26.94 us  201.2 GB/s | pass
+
+results/accuracy/real_x/gpu/out_worst.csv: 6 rows in 2 s; every check passed
+# utc=2026-11-18T22:35:00Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== o  model.language_model.layers.3.self_attn.o_proj.weight  M=2560 K=4096
+  v0       bf16 t256                         x39  iso    428.38 us   49.0 GB/s | spin    429.84 | str    426.03 us   49.3 GB/s | pass
+  v1       bf16 t256                         x39  iso     98.64 us  212.7 GB/s | spin     98.11 | str     95.90 us  218.8 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x39  iso     92.70 us  226.4 GB/s | spin     93.10 | str     91.30 us  229.9 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x39  iso    132.96 us  157.8 GB/s | spin    129.86 | str    126.95 us  165.3 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x77  iso     48.56 us  216.3 GB/s | spin     48.96 | str     45.82 us  229.2 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x149 iso     28.14 us  192.6 GB/s | spin     27.46 | str     25.27 us  214.5 GB/s | pass
+
+results/accuracy/real_x/gpu/o_worst.csv: 6 rows in 2 s; every check passed
+# utc=2026-11-18T22:35:02Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== qkv  model.language_model.layers.0.linear_attn.in_proj_qkv.weight  M=8192 K=2560
+  v0       bf16 t256                         x20  iso    405.31 us  103.5 GB/s | spin    404.32 | str    401.95 us  104.4 GB/s | pass
+  v1       bf16 t256                         x20  iso    186.82 us  224.6 GB/s | spin    188.22 | str    183.22 us  229.0 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x20  iso    181.66 us  231.0 GB/s | spin    182.11 | str    178.03 us  235.7 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x20  iso    253.26 us  165.7 GB/s | spin    250.72 | str    248.10 us  169.1 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x39  iso     93.01 us  225.9 GB/s | spin     92.99 | str     88.90 us  236.3 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x75  iso     50.53 us  214.4 GB/s | spin     49.98 | str     47.25 us  229.3 GB/s | pass
+
+results/accuracy/real_x/gpu/qkv_median.csv: 6 rows in 2 s; every check passed
+# utc=2026-11-18T22:35:05Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== qkv  model.language_model.layers.0.linear_attn.in_proj_qkv.weight  M=8192 K=2560
+  v0       bf16 t256                         x20  iso    404.91 us  103.6 GB/s | spin    404.29 | str    400.43 us  104.8 GB/s | pass
+  v1       bf16 t256                         x20  iso    186.82 us  224.6 GB/s | spin    187.20 | str    182.69 us  229.7 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x20  iso    181.78 us  230.9 GB/s | spin    182.08 | str    177.54 us  236.4 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x20  iso    253.31 us  165.7 GB/s | spin    251.71 | str    247.64 us  169.5 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x39  iso     91.73 us  229.0 GB/s | spin     91.97 | str     88.45 us  237.5 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x75  iso     51.12 us  212.0 GB/s | spin     50.03 | str     50.06 us  216.5 GB/s | pass
+
+results/accuracy/real_x/gpu/qkv_worst.csv: 6 rows in 2 s; every check passed
+# utc=2026-11-18T22:35:07Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== q  model.language_model.layers.3.self_attn.q_proj.weight  M=8192 K=2560
+  v0       bf16 t256                         x20  iso    399.78 us  105.0 GB/s | spin    400.21 | str    407.51 us  103.0 GB/s | pass
+  v1       bf16 t256                         x20  iso    188.43 us  222.7 GB/s | spin    187.23 | str    183.12 us  229.2 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x20  iso    181.73 us  230.9 GB/s | spin    182.11 | str    179.20 us  234.2 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x20  iso    254.16 us  165.1 GB/s | spin    250.72 | str    247.74 us  169.4 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x39  iso     92.78 us  226.4 GB/s | spin     92.99 | str     91.60 us  229.4 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x75  iso     49.81 us  217.5 GB/s | spin     50.10 | str     49.41 us  219.3 GB/s | pass
+
+results/accuracy/real_x/gpu/q_median.csv: 6 rows in 2 s; every check passed
+# utc=2026-11-18T22:35:09Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== q  model.language_model.layers.3.self_attn.q_proj.weight  M=8192 K=2560
+  v0       bf16 t256                         x20  iso    403.33 us  104.0 GB/s | spin    405.31 | str    403.16 us  104.1 GB/s | pass
+  v1       bf16 t256                         x20  iso    187.65 us  223.6 GB/s | spin    187.20 | str    183.24 us  229.0 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x20  iso    181.89 us  230.7 GB/s | spin    182.11 | str    181.94 us  230.7 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x20  iso    255.20 us  164.4 GB/s | spin    251.71 | str    248.22 us  169.1 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x39  iso     92.56 us  227.0 GB/s | spin     92.90 | str     88.44 us  237.5 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x75  iso     50.62 us  214.0 GB/s | spin     50.10 | str     49.88 us  217.2 GB/s | pass
+
+results/accuracy/real_x/gpu/q_worst.csv: 6 rows in 2 s; every check passed
+# utc=2026-11-18T22:35:12Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== up  model.language_model.layers.0.mlp.up_proj.weight  M=9216 K=2560
+  v0       bf16 t256                         x18  iso    431.07 us  109.5 GB/s | spin    434.02 | str    428.39 us  110.2 GB/s | pass
+  v1       bf16 t256                         x18  iso    210.37 us  224.4 GB/s | spin    210.78 | str    208.53 us  226.4 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x18  iso    204.38 us  231.0 GB/s | spin    205.66 | str    200.20 us  235.8 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x18  iso    283.57 us  166.5 GB/s | spin    281.44 | str    278.51 us  169.5 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x35  iso    104.10 us  227.0 GB/s | spin    103.33 | str     99.69 us  237.1 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x67  iso     55.71 us  218.8 GB/s | spin     56.16 | str     53.73 us  226.9 GB/s | pass
+
+results/accuracy/real_x/gpu/up_median.csv: 6 rows in 2 s; every check passed
+# utc=2026-11-18T22:35:14Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== up  model.language_model.layers.0.mlp.up_proj.weight  M=9216 K=2560
+  v0       bf16 t256                         x18  iso    437.20 us  108.0 GB/s | spin    433.98 | str    434.06 us  108.8 GB/s | pass
+  v1       bf16 t256                         x18  iso    209.44 us  225.4 GB/s | spin    209.89 | str    205.50 us  229.7 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x18  iso    204.16 us  231.2 GB/s | spin    204.61 | str    199.90 us  236.2 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x18  iso    283.81 us  166.3 GB/s | spin    281.41 | str    283.19 us  166.7 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x35  iso    104.06 us  227.1 GB/s | spin    104.26 | str     99.96 us  236.4 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x67  iso     55.86 us  218.2 GB/s | spin     56.13 | str     55.81 us  218.4 GB/s | pass
+
+results/accuracy/real_x/gpu/up_worst.csv: 6 rows in 2 s; every check passed
+# utc=2026-11-18T22:35:17Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== v  model.language_model.layers.3.self_attn.v_proj.weight  M=1024 K=2560
+  v0       bf16 t256                         x154 iso    273.68 us   19.2 GB/s | spin    274.27 | str    271.84 us   19.3 GB/s | pass
+  v1       bf16 t256                         x154 iso     27.10 us  193.7 GB/s | spin     26.46 | str     24.19 us  217.0 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x154 iso     26.05 us  201.6 GB/s | spin     26.35 | str     23.55 us  223.0 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x154 iso     39.25 us  133.8 GB/s | spin     36.70 | str     34.23 us  153.4 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x307 iso     15.04 us  174.9 GB/s | spin     15.20 | str     12.75 us  206.3 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x596 iso     11.49 us  118.3 GB/s | spin     10.08 | str      8.32 us  163.3 GB/s | pass
+
+results/accuracy/real_x/gpu/v_median.csv: 6 rows in 2 s; every check passed
+# utc=2026-11-18T22:35:19Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== v  model.language_model.layers.3.self_attn.v_proj.weight  M=1024 K=2560
+  v0       bf16 t256                         x154 iso    274.69 us   19.1 GB/s | spin    274.24 | str    272.11 us   19.3 GB/s | pass
+  v1       bf16 t256                         x154 iso     26.19 us  200.4 GB/s | spin     26.43 | str     25.63 us  204.9 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x154 iso     25.95 us  202.3 GB/s | spin     26.43 | str     23.56 us  222.8 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x154 iso     39.41 us  133.2 GB/s | spin     36.72 | str     34.24 us  153.3 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x307 iso     14.80 us  177.7 GB/s | spin     15.17 | str     12.73 us  206.6 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x596 iso      9.82 us  138.3 GB/s | spin     10.08 | str      8.32 us  163.3 GB/s | pass
+
+results/accuracy/real_x/gpu/v_worst.csv: 6 rows in 2 s; every check passed
+# utc=2026-11-18T22:35:21Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== z  model.language_model.layers.0.linear_attn.in_proj_z.weight  M=4096 K=2560
+  v0       bf16 t256                         x39  iso    277.06 us   75.7 GB/s | spin    276.32 | str    274.54 us   76.4 GB/s | pass
+  v1       bf16 t256                         x39  iso     95.81 us  219.0 GB/s | spin     96.10 | str     92.27 us  227.4 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x39  iso     92.66 us  226.5 GB/s | spin     93.02 | str     91.03 us  230.5 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x39  iso    131.82 us  159.2 GB/s | spin    128.86 | str    126.16 us  166.3 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x77  iso     47.63 us  220.6 GB/s | spin     48.00 | str     45.43 us  231.3 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x149 iso     27.95 us  193.9 GB/s | spin     27.49 | str     25.78 us  210.2 GB/s | pass
+
+results/accuracy/real_x/gpu/z_median.csv: 6 rows in 2 s; every check passed
+# utc=2026-11-18T22:35:23Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=quick seed=0 profile=warmup10+100ms_iso100_graph100x3 spin_ns=100000
+
+== z  model.language_model.layers.0.linear_attn.in_proj_z.weight  M=4096 K=2560
+  v0       bf16 t256                         x39  iso    276.85 us   75.8 GB/s | spin    276.46 | str    274.29 us   76.5 GB/s | pass
+  v1       bf16 t256                         x39  iso     95.78 us  219.1 GB/s | spin     96.06 | str     92.31 us  227.3 GB/s | pass
+  v2       bf16 t128_r1_u1_xg_full           x39  iso     92.67 us  226.4 GB/s | spin     92.99 | str     91.10 us  230.3 GB/s | pass
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x39  iso    132.38 us  158.5 GB/s | spin    128.83 | str    126.23 us  166.2 GB/s | pass
+  v3       int8 t128_r1_u4_xg_full           x77  iso     48.30 us  217.5 GB/s | spin     48.19 | str     45.39 us  231.5 GB/s | pass
+  v4       int4 t128_r1_u2_xg_full           x149 iso     28.10 us  192.9 GB/s | spin     28.48 | str     25.17 us  215.4 GB/s | pass
+
+results/accuracy/real_x/gpu/z_worst.csv: 6 rows in 2 s; every check passed
+132 GPU rows; checks failed: 0; int8: GPU / NumPy error 1.003–1.142, GPU / expected 0.987–1.040; int4: GPU / NumPy error 0.998–1.001, GPU / expected 0.998–1.001

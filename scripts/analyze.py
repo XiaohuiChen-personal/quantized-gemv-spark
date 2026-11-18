@@ -803,9 +803,10 @@ class Analysis:
                   f"{len(hyp) * int(b.tokens.iloc[0])}.",
                   f"- Weighted prediction vs pooled real-x error, INT4: ratio {(b.wpred_int4 / b.int4_pooled).min():.2f}–"
                   f"{(b.wpred_int4 / b.int4_pooled).max():.2f} (plain prediction: {(b.pred_int4 / b.int4_pooled).min():.2f}–"
-                  f"{(b.pred_int4 / b.int4_pooled).max():.2f}): how much of the change from random to real x the per-channel "
-                  "energy of the activations explains; the rest comes from correlations between channels.",
-                  f"- Without the first token of each window (position 0, the \"attention sink\"): pooled INT4 "
+                  f"{(b.pred_int4 / b.int4_pooled).max():.2f}): giving the Gaussian prediction the measured per-channel energy "
+                  "does not reproduce the real-x error, so outlier channels are not what moves it; the direction of x relative "
+                  "to W does (g and h in the table and the next bullets).",
+                  f"- Without the first token of each window (position 0, the \"attention sink\"), all 11 matrices: pooled INT4 "
                   f"{fmt_pct(b.int4_pooled_pos1.min(), 2)}–{fmt_pct(b.int4_pooled_pos1.max(), 2)}, largest per token "
                   f"{fmt_pct(b.int4_max_pos1.max(), 2)}."]
         ap = os.path.join(d, "all_layers.csv")
@@ -951,6 +952,14 @@ class Analysis:
                     md_table(t, fmtc), "",
                     f"- INT4 with my v4 kernels in place of Marlin would give a GEMV model of {1e6 / tm4:.1f} tokens/s "
                     "(Marlin and v4 run at the same speed, §7).",
+                    "- Speedup over vLLM's BF16 decode (P = " + str(Ps[0]) + "): " + ", ".join(
+                        f"{r.format} {r[f'decode tok/s, P={Ps[0]}'] / t.iloc[0][f'decode tok/s, P={Ps[0]}']:.2f}×" for _, r in t.iloc[1:].iterrows())
+                    + "; share of each checkpoint's byte ceiling: " + ", ".join(
+                        f"{r.format} {r[f'decode tok/s, P={Ps[0]}'] / r['byte ceiling tok/s']:.0%}" for _, r in t.iterrows())
+                    + ". vLLM's BF16 decode sits furthest below its ceiling because its BF16 GEMVs are cuBLAS's slow "
+                    "`gemvx` path (§3, §17; with v2's GEMV times the BF16 GEMV model would be "
+                    f"{1e6 / self.gemv_model(lambda lm: ('v2', 'bf16'))[0]:.1f} tokens/s), so part of the quantized speedups "
+                    "over vLLM's BF16 is a better GEMV, not fewer bytes.",
                     "- Greedy continuations (P = " + str(Ps[0]) + ", execution 1): " + "; ".join(agree) + ".",
                     "- Reading: `GEMV model / measured time` compares the kernel-benchmark prediction with the engine; "
                     "what the benchmark leaves out (attention and DeltaNet state, norms, sampling over 248 320 logits, launch "

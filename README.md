@@ -133,7 +133,8 @@ scripts/run_stage.sh ncu        # Nsight Compute: DRAM bytes, occupancy, stalls 
 python3 scripts/fetch_extras.py # tokenizer files at the pinned revision, WikiText-2 test text
 scripts/run_stage.sh realx      # real activations: capture, INT8/INT4 error, GPU kernels on real x
 scripts/run_stage.sh e2e        # INT8/INT4 GPTQ checkpoints from this quantizer; vLLM decode
-                                # tokens/s, perplexity and kernel breakdown -> results/e2e/
+                                # tokens/s and perplexity -> results/e2e/
+scripts/run_stage.sh e2eprof    # GPU kernel breakdown of one decode request per format
 ```
 
 The model-level stages run in the `vllm/vllm-openai:v0.28.0-aarch64` image (vLLM 0.28,

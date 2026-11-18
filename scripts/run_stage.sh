@@ -22,6 +22,8 @@
 #   scripts/run_stage.sh e2e       INT4/INT8 GPTQ checkpoints from this quantizer, then
 #                                  vLLM decode tokens/s and perplexity, BF16/INT8/INT4,
 #                                  three executions                  -> results/e2e/
+#   scripts/run_stage.sh e2eprof   one decode request per format under Nsight Systems
+#                                  (kernel breakdown; after e2e)     -> results/e2e/
 #
 # Every stage records provenance (UTC time, host, git commit, GPU state) and refuses to
 # time anything while another process uses the GPU. Timed stages log GPU clocks, power
@@ -30,7 +32,7 @@ set -euo pipefail
 export PATH=/usr/local/cuda/bin:$PATH
 export OMP_WAIT_POLICY=PASSIVE  # OpenMP threads must not spin during GPU timing
 cd "$(dirname "$0")/.."
-stage=${1:?usage: run_stage.sh test|tune|final|rotation|nsys|marlin|sweep|xsample|ncu|realx|e2e}
+stage=${1:?usage: run_stage.sh test|tune|final|rotation|nsys|marlin|sweep|xsample|ncu|realx|e2e|e2eprof}
 
 env_report() {
     echo "# $(date -u +%FT%TZ) host=$(hostname) git=$(git describe --always --dirty) stage=$stage"
@@ -243,11 +245,24 @@ e2e)
         done
     done
     gpu_log_stop
+    env_report >> "$out/env.txt"
+    ;;
+e2eprof)
+    require_quiet
+    out=results/e2e
+    mkdir -p ~/tmp/en605617/e2e
+    for b in 4 8; do  # the checkpoints the e2e stage built and verified
+        [ -f data/ckpt/int$b/quantization_info.json ] || { echo "run the e2e stage first" >&2; exit 1; }
+    done
+    bf16=/hf/hub/models--Qwen--Qwen3.5-4B/snapshots/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
+    env_report > "$out/env_profile.txt"
     # GPU kernel breakdown of the decode steps: one request of 1 + 256 tokens per format
     # under Nsight Systems (the host's installation, mounted into the container; CUDA-graph
     # kernels traced one by one), vLLM's engine in-process so the profiler API covers it.
+    # The nsys binary inside the Nsight Systems installation (the one on PATH under
+    # /usr/local/cuda/bin is a launcher outside the mounted directory).
     NSYS_DIR=/opt/nvidia/nsight-systems
-    nsys_bin=$(readlink -f "$(command -v nsys)")
+    nsys_bin=$(ls -d "$NSYS_DIR"/*/target-linux-sbsa-armv8/nsys | sort -V | tail -1)
     for label in bf16 int8 int4; do
         case $label in
             bf16) model=$bf16 ;;
@@ -268,7 +283,6 @@ e2e)
             -o "$out/profile_$label" ~/tmp/en605617/e2e/decode_$label.nsys-rep > /dev/null
         grep -E "profiled" "$out/profile_$label.log"
     done
-    env_report >> "$out/env.txt"
     ;;
 *)
     echo "unknown stage $stage" >&2
