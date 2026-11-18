@@ -51,7 +51,7 @@ FP32 accumulation, BF16 output y.
 | --- | --- | --- |
 | `v0` | BF16 | one thread per row (uncoalesced; the naive start) |
 | `v1` | BF16 | one warp per row, 2-byte loads, warp-shuffle reduction |
-| `v2` | BF16 | 16-byte loads (8 weights), x staged in shared memory, persistent grid sized by the occupancy API, several rows per warp and several loads in flight per lane |
+| `v2` | BF16 | 16-byte loads (8 weights). Tuned configuration: 128 threads per block, one row per warp, no unrolling, x read from global memory, a grid covering every row (`t128_r1_u1_xg_full`). The template also offers x staged in shared memory, a persistent grid sized by the occupancy API, several rows per warp and several loads in flight per lane; on the GB10 each changes the time by −0.6% to +1.3% on the matrices of 21 MB and up, and makes the 5 MB `k_proj` up to 6.5% slower (`results/ANALYSIS.md` §10) |
 | `v3` | INT8, one FP16 scale per row | v2's structure; 16 weights per load, decoded in registers, the row scale applied once |
 | `v4` | INT4, one FP16 scale per 128 weights along K | v2's structure; 32 weights per load, one scale per load |
 | `cublas` | BF16 | `cublasGemmEx(CUBLAS_OP_T, …, M, 1, K, …, CUBLAS_COMPUTE_32F)` on the row-major matrix |
@@ -60,7 +60,8 @@ FP32 accumulation, BF16 output y.
 v2, v3 and v4 are one template (`gemv_vec` in `src/kernels.cuh`) parameterised by the
 weight format, so they differ only in how a 16-byte chunk is decoded. Their
 configurations (threads, rows per warp, unroll, x in shared memory, grid) were chosen by
-a tuning run with a rule fixed beforehand and are frozen in `src/tuned.h`.
+a tuning run with a rule fixed beforehand and are frozen in `src/tuned.h`; all three
+read x from global memory and launch a grid covering every row.
 Diagnostics, not rungs: `v2abl` (v2 with one factor changed), `v4load` (v4's loads
 without the decode), `read` (a plain read of the same bytes: the size-matched
 bandwidth reference).

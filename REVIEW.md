@@ -20,9 +20,12 @@ are, and what I would most like checked. Build and run instructions are in the
      loads, or for `x_smem`?
 2. **`src/gemv.cuh`** — `time_launch` (how a launch is timed), `DeviceCopies` (rotating
    copies), `check_output` (pass/fail criteria). Questions:
-   - Does the isolated measurement time only the kernel? (A spin kernel runs first so
-     the GPU is busy while the host enqueues the start event, the kernel and the stop
-     event.)
+   - Does the isolated measurement time only the kernel? (Each launch sits between its
+     own pair of plain CUDA events and is synchronized before the next one. Against
+     Nsight Systems kernel durations the events add a median 2.4 µs over the final set,
+     which matters only for the smallest kernels. A variant with a spin kernel before
+     the start event, meant to hide host launch latency, made the times worse on the
+     GB10 (`results/timing_method/`), so it is recorded as a diagnostic only.)
    - Can two consecutive launches ever read the same copy?
    - Is the tolerance (2⁻⁸·|y_ref| + 2⁻¹⁴·Σ|w·x| per element, relative L2 ≤ 4 × 10⁻³)
      tight enough to catch a real bug and loose enough not to fail a correct kernel?

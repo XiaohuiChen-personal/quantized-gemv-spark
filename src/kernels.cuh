@@ -4,7 +4,8 @@
 // every kernel accumulates in FP32. The ladder:
 //   v0  one thread per row                        (uncoalesced)
 //   v1  one warp per row, shuffle reduction       (coalesced, 2-byte loads)
-//   v2  BF16, 16-byte loads, x in shared memory, persistent grid, rows per warp, unroll
+//   v2  BF16, 16-byte loads; tunable: x in shared memory, persistent grid, rows per
+//       warp, unroll (the frozen choices are in tuned.h)
 //   v3  v2's structure with INT8 weights, one FP16 scale per row
 //   v4  v2's structure with INT4 weights, one FP16 scale per group of 128 along K
 // v2-v4 are one template (gemv_vec) parameterised by the weight format, so they differ
@@ -299,9 +300,10 @@ __global__ void read_kernel(const float4* __restrict__ src, size_t n, float* sin
 }
 
 // Busy-waits for ns nanoseconds on the global timer, touching no memory. Queued just
-// before a timed launch's start event, it keeps the GPU busy while the host enqueues the
-// start event, the kernel and the stop event, so the events bracket only the kernel's
-// execution and not the host's launch latency.
+// before a timed launch's start event, it is meant to keep the GPU busy while the host
+// enqueues the start event, the kernel and the stop event, so the events bracket only the
+// kernel's execution. On the GB10 it adds ~1.3 us instead and puts the times on a ~1 us
+// lattice (results/timing_method/), so time_launch uses it only for the spin diagnostic.
 __global__ void spin_kernel(unsigned long long ns)
 {
     unsigned long long t0, t;
