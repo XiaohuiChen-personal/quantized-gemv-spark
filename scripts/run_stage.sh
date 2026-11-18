@@ -11,6 +11,12 @@
 #   scripts/run_stage.sh marlin    vLLM Marlin INT4 at batch 1 (H4)  -> results/marlin/
 #   scripts/run_stage.sh sweep     all-layer accuracy sweep (CPU)    -> results/accuracy/
 #
+# Added after the freeze at c1d91fc (new directories; the frozen results are not touched):
+#
+#   scripts/run_stage.sh xsample   256 random x for every large matrix of all 32 layers
+#                                  (CPU)                             -> results/accuracy/
+#   scripts/run_stage.sh ncu       Nsight Compute (needs sudo here)  -> results/ncu/
+#
 # Every stage records provenance (UTC time, host, git commit, GPU state) and refuses to
 # time anything while another process uses the GPU. Timed stages log GPU clocks, power
 # and temperature once a second next to their results.
@@ -18,7 +24,7 @@ set -euo pipefail
 export PATH=/usr/local/cuda/bin:$PATH
 export OMP_WAIT_POLICY=PASSIVE  # OpenMP threads must not spin during GPU timing
 cd "$(dirname "$0")/.."
-stage=${1:?usage: run_stage.sh test|tune|final|rotation|nsys|marlin|sweep}
+stage=${1:?usage: run_stage.sh test|tune|final|rotation|nsys|marlin|sweep|xsample|ncu}
 
 env_report() {
     echo "# $(date -u +%FT%TZ) host=$(hostname) git=$(git describe --always --dirty) stage=$stage"
@@ -126,6 +132,39 @@ sweep)
     { env_report; python3 scripts/accuracy_sweep.py --out results/accuracy/all_layers.csv; } \
         > results/accuracy/sweep.log 2>&1
     tail -3 results/accuracy/sweep.log
+    ;;
+xsample)
+    mkdir -p results/accuracy
+    { env_report; python3 scripts/x_sample_check.py --all-layers --out results/accuracy/x_samples_all_layers.csv; } \
+        > results/accuracy/x_samples_all_layers.log 2>&1
+    tail -1 results/accuracy/x_samples_all_layers.log
+    ;;
+ncu)
+    require_quiet
+    mkdir -p results/ncu ~/tmp/en605617/ncu
+    env_report > results/ncu/env.txt
+    ncu --version | tail -1 >> results/ncu/env.txt
+    # GPU performance counters are admin-only on this machine (RmProfilingAdminOnly: 1),
+    # so the profiler runs under sudo. bench --mode ncu makes five isolated launches per
+    # (matrix, kernel); only those are profiled (NVTX filter). Nsight Compute flushes the
+    # caches before every replay pass, so each profiled launch reads its operand from
+    # DRAM; clocks are left as they are (--clock-control none). The GB10 has no dram__*
+    # counters: DRAM reads are the L2 sectors filled from system memory.
+    rep=~/tmp/en605617/ncu/ncu_final
+    sudo -n env OMP_WAIT_POLICY=PASSIVE "$(command -v ncu)" --nvtx --nvtx-include "regex:^iso /" \
+        --clock-control none --cache-control all \
+        --section SpeedOfLight --section LaunchStats --section Occupancy --section WarpStateStats \
+        --section MemoryWorkloadAnalysis \
+        --metrics lts__d_sectors_fill_sysmem.sum,lts__t_sectors_aperture_sysmem_op_read_lookup_miss.sum,lts__t_sectors_op_read.sum,lts__t_sectors_op_write.sum,lts__t_bytes.sum,gpu__time_duration.sum,smsp__inst_executed.sum \
+        -f -o "$rep" ./build/bench --mode ncu --only gate,down,qkv,z,out,k,lmhead \
+        --out results/ncu/bench_under_ncu.csv > results/ncu/bench_under_ncu.log 2>&1
+    sudo -n chown -R "$(id -u):$(id -g)" results/ncu ~/tmp/en605617/ncu
+    ncu --import "$rep.ncu-rep" --csv --page raw > results/ncu/ncu_raw.csv
+    python3 scripts/ncu_summary.py results/ncu/ncu_raw.csv results/ncu/bench_under_ncu.csv \
+        --csv results/ncu/summary.csv > results/ncu/summary.md
+    gzip -f results/ncu/ncu_raw.csv
+    tail -1 results/ncu/bench_under_ncu.log
+    head -3 results/ncu/summary.md | tail -1
     ;;
 *)
     echo "unknown stage $stage" >&2

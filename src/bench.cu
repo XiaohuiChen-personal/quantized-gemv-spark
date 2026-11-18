@@ -3,7 +3,7 @@
 // (isolated, spin diagnostic, streamed) with rotating device copies. Writes one CSV row per
 // (matrix, kernel) and, in final mode, an accuracy CSV of the CPU-only quantization error.
 //
-//   bench --mode final|tune|quick|rotation [--data data] [--out results/run.csv]
+//   bench --mode final|tune|quick|rotation|ncu [--data data] [--out results/run.csv]
 //         [--only id,id] [--seed N]
 //
 // final:    the ladder (v0, v1, v2, cuBLAS, v3, v4), cuBLASLt heuristics, the v2
@@ -12,6 +12,10 @@
 // quick:    the ladder only, tuning profile (development).
 // rotation: read, v2 and v4 with copy counts giving total footprints of 1, 2, 4, ...,
 //           128 x L2 (finds the footprint at which no cache helps any more).
+// ncu:      the final set without the v2 ablation, with a short profile (3 warm-up and 5
+//           isolated launches) for Nsight Compute: run under
+//           ncu --nvtx --nvtx-include "regex:^iso /", which profiles only the isolated
+//           launches (scripts/run_stage.sh ncu). Its timings are not used.
 // --seed shuffles the order of formats and of kernels within a format (final mode).
 #include <chrono>
 #include <ctime>
@@ -33,6 +37,8 @@
 static const std::set<std::string> kTuneMatrices = {"gate", "down", "qkv", "z", "out", "lmhead"};
 // Rotation sweep: a 21 MB BF16 matrix and the 5.2 MB k_proj (1.3 MB in INT4).
 static const std::set<std::string> kRotationMatrices = {"gate", "out", "k"};
+// Nsight Compute mode: a few launches per kernel, so the profiler replays only those.
+static constexpr Profile kNcuProfile{3, 0.0, 5, 1, 1};
 
 struct MatrixData {
     MatrixInfo info;
@@ -150,11 +156,12 @@ int main(int argc, char** argv)
             return EXIT_FAILURE;
         }
     }
-    if (mode != "final" && mode != "tune" && mode != "quick" && mode != "rotation") {
-        fprintf(stderr, "--mode must be final, tune, quick or rotation\n");
+    if (mode != "final" && mode != "tune" && mode != "quick" && mode != "rotation" && mode != "ncu") {
+        fprintf(stderr, "--mode must be final, tune, quick, rotation or ncu\n");
         return EXIT_FAILURE;
     }
-    const Profile prof = (mode == "final" || mode == "rotation") ? kFinalProfile : kTuneProfile;
+    const Profile prof = mode == "ncu" ? kNcuProfile
+                         : (mode == "final" || mode == "rotation") ? kFinalProfile : kTuneProfile;
 
     cudaDeviceProp p;
     CUDA_CHECK(cudaGetDeviceProperties(&p, 0));
@@ -189,7 +196,10 @@ int main(int argc, char** argv)
     std::vector<KernelDef> kernels;
     if (mode == "tune") kernels = tune_set();
     else if (mode == "rotation") kernels = rotation_set(ctx.sink);
-    else kernels = final_set(ctx, mode == "final");
+    else kernels = final_set(ctx, mode == "final" || mode == "ncu");
+    if (mode == "ncu")
+        kernels.erase(std::remove_if(kernels.begin(), kernels.end(), [](const KernelDef& k) { return k.name == "v2abl"; }),
+                      kernels.end());
     std::vector<Fmt> fmts = {Fmt::BF16, Fmt::INT8, Fmt::INT4};
     if (seed) {
         std::mt19937 rng(seed);
