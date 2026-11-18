@@ -12,6 +12,9 @@ build/
 # Weight matrices exported from the model (raw BF16, about 1.6 GB in total).
 # The shape manifest next to them is tracked.
 data/*.bin
+# Generated inputs of the model-level experiments (real activations, bench data
+# directories for them, the quantized checkpoints): large, rebuilt by run_stage.sh.
+data/*/
 
 # Python
 __pycache__/

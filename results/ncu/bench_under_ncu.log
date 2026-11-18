@@ -1,0 +1,877 @@
+==WARNING== Note: Running with unmodified GPU clocks. If not controlled otherwise, profiling results may be inconsistent.
+==PROF== Connected to process 2068629 (/home/xiaohui_chen/Projects/quantized-gemv-spark/build/bench)
+# utc=2026-11-18T21:39:29Z host=spark-2a60 device="NVIDIA GB10" cc=12.1 sms=48 l2_bytes=25165824 driver=13000 runtime=13000 cublas=130101 git=3079fee mode=ncu seed=0 profile=warmup3+0ms_iso5_graph1x1 spin_ns=100000
+
+== gate  model.language_model.layers.0.mlp.gate_proj.weight  M=9216 K=2560
+==PROF== Profiling "gemv_v0" - 0: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 1: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 2: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 3: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 4: 0%....50%....100% - 17 passes
+  v0       bf16 t256                         x18  iso 470495.79 us    0.1 GB/s | spin    444.29 | str    439.16 us  107.5 GB/s | pass
+==PROF== Profiling "gemv_v1" - 5: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 6: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 7: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 8: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 9: 0%....50%....100% - 17 passes
+  v1       bf16 t256                         x18  iso 458664.89 us    0.1 GB/s | spin    218.98 | str    210.66 us  224.1 GB/s | pass
+==PROF== Profiling "gemv_vec" - 10: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 11: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 12: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 13: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 14: 0%....50%....100% - 17 passes
+  v2       bf16 t128_r1_u1_xg_full           x18  iso 460911.53 us    0.1 GB/s | spin    210.82 | str    216.37 us  218.2 GB/s | pass
+==PROF== Profiling "kernel" - 15: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 16: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 17: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 18: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 19: 0%....50%....100% - 17 passes
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x18  iso 507443.79 us    0.1 GB/s | spin    282.46 | str    280.99 us  168.0 GB/s | pass
+==PROF== Profiling "kernel" - 20: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 21: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 22: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 23: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 24: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur0                        x18  iso 502560.06 us    0.1 GB/s | spin    282.46 | str    281.53 us  167.7 GB/s | pass
+==PROF== Profiling "kernel" - 25: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 26: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 27: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 28: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 29: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur1                        x18  iso 504429.87 us    0.1 GB/s | spin    212.83 | str    209.44 us  225.4 GB/s | pass (spin too short)
+==PROF== Profiling "Kernel2" - 30: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 31: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 32: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 33: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 34: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur2                        x18  iso 478825.23 us    0.1 GB/s | spin    215.90 | str    207.90 us  227.1 GB/s | pass (spin too short)
+==PROF== Profiling "kernel" - 35: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 36: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 37: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 38: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 39: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur3                        x18  iso 519025.39 us    0.1 GB/s | spin    323.46 | str    349.16 us  135.2 GB/s | pass
+==PROF== Profiling "Kernel2" - 40: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 41: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 42: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 43: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 44: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 45: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 46: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 47: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 48: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 49: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur4                        x18  iso 974433.11 us    0.0 GB/s | spin    223.10 | str    213.51 us  221.1 GB/s | FAIL (recorded, not fatal) (spin too short)
+==PROF== Profiling "Kernel2" - 50: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 51: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 52: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 53: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 54: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 55: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 56: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 57: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 58: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 59: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur5                        x18  iso 966004.15 us    0.0 GB/s | spin    225.15 | str    215.10 us  219.5 GB/s | pass (spin too short)
+==PROF== Profiling "dot_kernel" - 60: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 61: 0%....50%....100% - 17 passes
+==PROF== Profiling "dot_kernel" - 62: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 63: 0%....50%....100% - 17 passes
+==PROF== Profiling "dot_kernel" - 64: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 65: 0%....50%....100% - 17 passes
+==PROF== Profiling "dot_kernel" - 66: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 67: 0%....50%....100% - 17 passes
+==PROF== Profiling "dot_kernel" - 68: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 69: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur6                        x18  iso 1129557.37 us    0.0 GB/s | spin    300.90 | str    269.09 us  175.4 GB/s | pass
+==PROF== Profiling "kernel" - 70: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 71: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 72: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 73: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 74: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur7                        x18  iso 522524.41 us    0.1 GB/s | spin    399.20 | str    395.83 us  119.3 GB/s | pass (spin too short)
+==PROF== Profiling "read_kernel" - 75: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 76: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 77: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 78: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 79: 0%....50%....100% - 17 passes
+  read     bf16 t256_g768                    x18  iso 455115.48 us    0.1 GB/s | spin    204.64 | str    202.09 us  233.5 GB/s | n/a
+==PROF== Profiling "gemv_vec" - 80: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 81: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 82: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 83: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 84: 0%....50%....100% - 17 passes
+  v3       int8 t128_r1_u4_xg_full           x35  iso 463651.95 us    0.1 GB/s | spin    111.36 | str    103.42 us  228.5 GB/s | pass
+==PROF== Profiling "read_kernel" - 85: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 86: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 87: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 88: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 89: 0%....50%....100% - 17 passes
+  read     int8 t256_g768                    x35  iso 447441.50 us    0.1 GB/s | spin    105.31 | str    102.96 us  229.3 GB/s | n/a
+==PROF== Profiling "gemv_vec" - 90: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 91: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 92: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 93: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 94: 0%....50%....100% - 17 passes
+  v4       int4 t128_r1_u2_xg_full           x67  iso 461523.25 us    0.0 GB/s | spin     64.35 | str     55.77 us  218.6 GB/s | pass
+==PROF== Profiling "gemv_vec" - 95: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 96: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 97: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 98: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 99: 0%....50%....100% - 17 passes
+  v4load   int4 t128_r1_u2_xg_full           x67  iso 452108.83 us    0.0 GB/s | spin     60.22 | str     55.85 us  218.2 GB/s | n/a
+==PROF== Profiling "read_kernel" - 100: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 101: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 102: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 103: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 104: 0%....50%....100% - 17 passes
+  read     int4 t256_g768                    x67  iso 447206.36 us    0.0 GB/s | spin     57.15 | str     54.68 us  222.5 GB/s | n/a
+
+== down  model.language_model.layers.0.mlp.down_proj.weight  M=2560 K=9216
+==PROF== Profiling "gemv_v0" - 105: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 106: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 107: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 108: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 109: 0%....50%....100% - 17 passes
+  v0       bf16 t256                         x18  iso 476927.31 us    0.1 GB/s | spin    993.09 | str   1026.52 us   46.0 GB/s | pass
+==PROF== Profiling "gemv_v1" - 110: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 111: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 112: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 113: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 114: 0%....50%....100% - 17 passes
+  v1       bf16 t256                         x18  iso 471124.45 us    0.1 GB/s | spin    229.15 | str    214.71 us  219.9 GB/s | pass
+==PROF== Profiling "gemv_vec" - 115: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 116: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 117: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 118: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 119: 0%....50%....100% - 17 passes
+  v2       bf16 t128_r1_u1_xg_full           x18  iso 465391.82 us    0.1 GB/s | spin    213.86 | str    206.86 us  228.2 GB/s | pass (spin too short)
+==PROF== Profiling "kernel" - 120: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 121: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 122: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 123: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 124: 0%....50%....100% - 17 passes
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x18  iso 509713.62 us    0.1 GB/s | spin    211.78 | str    209.24 us  225.6 GB/s | pass
+==PROF== Profiling "kernel" - 125: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 126: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 127: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 128: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 129: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur0                        x18  iso 510960.88 us    0.1 GB/s | spin    210.78 | str    209.37 us  225.5 GB/s | pass (spin too short)
+==PROF== Profiling "kernel" - 130: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 131: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 132: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 133: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 134: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur1                        x18  iso 508773.90 us    0.1 GB/s | spin    295.78 | str    295.21 us  159.9 GB/s | pass
+==PROF== Profiling "Kernel2" - 135: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 136: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 137: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 138: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 139: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 140: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 141: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 142: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 143: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 144: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur2                        x18  iso 950929.26 us    0.0 GB/s | spin    221.02 | str    230.90 us  204.5 GB/s | pass (spin too short)
+==PROF== Profiling "Kernel2" - 145: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 146: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 147: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 148: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 149: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur3                        x18  iso 480532.53 us    0.1 GB/s | spin    226.14 | str    221.57 us  213.1 GB/s | FAIL (recorded, not fatal)
+==PROF== Profiling "kernel" - 150: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 151: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 152: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 153: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 154: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 155: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 156: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 157: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 158: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 159: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur4                        x18  iso 989235.17 us    0.0 GB/s | spin    313.18 | str    314.42 us  150.1 GB/s | pass (spin too short)
+==PROF== Profiling "kernel" - 160: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 161: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 162: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 163: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 164: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 165: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 166: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 167: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 168: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 169: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur5                        x18  iso 983671.14 us    0.0 GB/s | spin    220.00 | str    213.30 us  221.3 GB/s | pass (spin too short)
+==PROF== Profiling "Kernel2" - 170: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 171: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 172: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 173: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 174: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 175: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 176: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 177: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 178: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 179: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur6                        x18  iso 960014.16 us    0.0 GB/s | spin    229.34 | str    221.95 us  212.7 GB/s | pass (spin too short)
+==PROF== Profiling "kernel" - 180: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 181: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 182: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 183: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 184: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 185: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 186: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 187: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 188: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 189: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur7                        x18  iso 999111.51 us    0.0 GB/s | spin    226.18 | str    246.57 us  191.5 GB/s | pass
+==PROF== Profiling "read_kernel" - 190: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 191: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 192: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 193: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 194: 0%....50%....100% - 17 passes
+  read     bf16 t256_g768                    x18  iso 454961.94 us    0.1 GB/s | spin    202.59 | str    214.41 us  220.1 GB/s | n/a
+==PROF== Profiling "gemv_vec" - 195: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 196: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 197: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 198: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 199: 0%....50%....100% - 17 passes
+  v3       int8 t128_r1_u4_xg_full           x35  iso 462093.48 us    0.1 GB/s | spin    110.69 | str    105.52 us  223.9 GB/s | pass
+==PROF== Profiling "read_kernel" - 200: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 201: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 202: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 203: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 204: 0%....50%....100% - 17 passes
+  read     int8 t256_g768                    x35  iso 451894.56 us    0.1 GB/s | spin    105.31 | str    102.64 us  229.9 GB/s | n/a
+==PROF== Profiling "gemv_vec" - 205: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 206: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 207: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 208: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 209: 0%....50%....100% - 17 passes
+  v4       int4 t128_r1_u2_xg_full           x67  iso 465593.93 us    0.0 GB/s | spin     61.28 | str     58.00 us  210.2 GB/s | pass
+==PROF== Profiling "gemv_vec" - 210: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 211: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 212: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 213: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 214: 0%....50%....100% - 17 passes
+  v4load   int4 t128_r1_u2_xg_full           x67  iso 451775.63 us    0.0 GB/s | spin     62.34 | str     58.23 us  209.3 GB/s | n/a
+==PROF== Profiling "read_kernel" - 215: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 216: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 217: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 218: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 219: 0%....50%....100% - 17 passes
+  read     int4 t256_g768                    x67  iso 456608.64 us    0.0 GB/s | spin     57.18 | str     55.01 us  221.1 GB/s | n/a
+
+== qkv  model.language_model.layers.0.linear_attn.in_proj_qkv.weight  M=8192 K=2560
+==PROF== Profiling "gemv_v0" - 220: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 221: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 222: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 223: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 224: 0%....50%....100% - 17 passes
+  v0       bf16 t256                         x20  iso 472061.86 us    0.1 GB/s | spin    417.41 | str    412.02 us  101.8 GB/s | pass
+==PROF== Profiling "gemv_v1" - 225: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 226: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 227: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 228: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 229: 0%....50%....100% - 17 passes
+  v1       bf16 t256                         x20  iso 473327.94 us    0.1 GB/s | spin    191.36 | str    190.99 us  219.7 GB/s | pass
+==PROF== Profiling "gemv_vec" - 230: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 231: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 232: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 233: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 234: 0%....50%....100% - 17 passes
+  v2       bf16 t128_r1_u1_xg_full           x20  iso 469195.01 us    0.1 GB/s | spin    189.28 | str    182.02 us  230.6 GB/s | pass
+==PROF== Profiling "kernel" - 235: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 236: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 237: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 238: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 239: 0%....50%....100% - 17 passes
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x20  iso 522125.61 us    0.1 GB/s | spin    251.74 | str    262.01 us  160.2 GB/s | pass
+==PROF== Profiling "kernel" - 240: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 241: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 242: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 243: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 244: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur0                        x20  iso 523721.44 us    0.1 GB/s | spin    251.74 | str    249.75 us  168.0 GB/s | pass
+==PROF== Profiling "kernel" - 245: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 246: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 247: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 248: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 249: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur1                        x20  iso 522177.80 us    0.1 GB/s | spin    189.28 | str    195.55 us  214.6 GB/s | pass
+==PROF== Profiling "Kernel2" - 250: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 251: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 252: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 253: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 254: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 255: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 256: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 257: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 258: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 259: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur2                        x20  iso 973476.81 us    0.0 GB/s | spin    194.40 | str    193.22 us  217.2 GB/s | FAIL (recorded, not fatal) (spin too short)
+==PROF== Profiling "Kernel2" - 260: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 261: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 262: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 263: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 264: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur3                        x20  iso 477055.73 us    0.1 GB/s | spin    193.34 | str    186.93 us  224.5 GB/s | pass
+==PROF== Profiling "Kernel2" - 265: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 266: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 267: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 268: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 269: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 270: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 271: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 272: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 273: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 274: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur4                        x20  iso 953865.60 us    0.0 GB/s | spin    197.60 | str    192.31 us  218.2 GB/s | pass (spin too short)
+==PROF== Profiling "kernel" - 275: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 276: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 277: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 278: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 279: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur5                        x20  iso 512262.02 us    0.1 GB/s | spin    288.77 | str    287.93 us  145.7 GB/s | pass
+==PROF== Profiling "dot_kernel" - 280: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 281: 0%....50%....100% - 17 passes
+==PROF== Profiling "dot_kernel" - 282: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 283: 0%....50%....100% - 17 passes
+==PROF== Profiling "dot_kernel" - 284: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 285: 0%....50%....100% - 17 passes
+==PROF== Profiling "dot_kernel" - 286: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 287: 0%....50%....100% - 17 passes
+==PROF== Profiling "dot_kernel" - 288: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 289: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur6                        x20  iso 1096887.57 us    0.0 GB/s | spin    268.13 | str    267.24 us  157.0 GB/s | pass
+==PROF== Profiling "kernel" - 290: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 291: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 292: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 293: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 294: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur7                        x20  iso 512749.88 us    0.1 GB/s | spin    356.22 | str    354.25 us  118.5 GB/s | pass (spin too short)
+==PROF== Profiling "read_kernel" - 295: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 296: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 297: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 298: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 299: 0%....50%....100% - 17 passes
+  read     bf16 t256_g768                    x20  iso 455395.69 us    0.1 GB/s | spin    180.06 | str    180.18 us  232.8 GB/s | n/a
+==PROF== Profiling "gemv_vec" - 300: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 301: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 302: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 303: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 304: 0%....50%....100% - 17 passes
+  v3       int8 t128_r1_u4_xg_full           x39  iso 463380.31 us    0.0 GB/s | spin     96.19 | str     92.25 us  227.7 GB/s | pass
+==PROF== Profiling "read_kernel" - 305: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 306: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 307: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 308: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 309: 0%....50%....100% - 17 passes
+  read     int8 t256_g768                    x39  iso 451664.46 us    0.0 GB/s | spin     94.24 | str     91.71 us  228.8 GB/s | n/a
+==PROF== Profiling "gemv_vec" - 310: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 311: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 312: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 313: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 314: 0%....50%....100% - 17 passes
+  v4       int4 t128_r1_u2_xg_full           x75  iso 458949.07 us    0.0 GB/s | spin     56.16 | str     51.18 us  211.7 GB/s | pass
+==PROF== Profiling "gemv_vec" - 315: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 316: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 317: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 318: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 319: 0%....50%....100% - 17 passes
+  v4load   int4 t128_r1_u2_xg_full           x75  iso 451569.95 us    0.0 GB/s | spin     55.14 | str     50.16 us  216.0 GB/s | n/a
+==PROF== Profiling "read_kernel" - 320: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 321: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 322: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 323: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 324: 0%....50%....100% - 17 passes
+  read     int4 t256_g768                    x75  iso 448650.21 us    0.0 GB/s | spin     51.04 | str     48.82 us  221.5 GB/s | n/a
+
+== z  model.language_model.layers.0.linear_attn.in_proj_z.weight  M=4096 K=2560
+==PROF== Profiling "gemv_v0" - 325: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 326: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 327: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 328: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 329: 0%....50%....100% - 17 passes
+  v0       bf16 t256                         x39  iso 473822.97 us    0.0 GB/s | spin    276.35 | str    274.25 us   76.5 GB/s | pass
+==PROF== Profiling "gemv_v1" - 330: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 331: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 332: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 333: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 334: 0%....50%....100% - 17 passes
+  v1       bf16 t256                         x39  iso 464383.03 us    0.0 GB/s | spin    100.19 | str     95.76 us  219.1 GB/s | pass
+==PROF== Profiling "gemv_vec" - 335: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 336: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 337: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 338: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 339: 0%....50%....100% - 17 passes
+  v2       bf16 t128_r1_u1_xg_full           x39  iso 467872.89 us    0.0 GB/s | spin     97.15 | str     92.44 us  227.0 GB/s | pass
+==PROF== Profiling "kernel" - 340: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 341: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 342: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 343: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 344: 0%....50%....100% - 17 passes
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x39  iso 519750.61 us    0.0 GB/s | spin    130.02 | str    127.86 us  164.1 GB/s | pass
+==PROF== Profiling "kernel" - 345: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 346: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 347: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 348: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 349: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur0                        x39  iso 520620.00 us    0.0 GB/s | spin    130.78 | str    128.17 us  163.7 GB/s | pass
+==PROF== Profiling "kernel" - 350: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 351: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 352: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 353: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 354: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur1                        x39  iso 509201.35 us    0.0 GB/s | spin     98.27 | str     92.39 us  227.1 GB/s | pass
+==PROF== Profiling "Kernel2" - 355: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 356: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 357: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 358: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 359: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 360: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 361: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 362: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 363: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 364: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur2                        x39  iso 968660.34 us    0.0 GB/s | spin    102.24 | str     98.91 us  212.2 GB/s | pass (spin too short)
+==PROF== Profiling "Kernel2" - 365: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 366: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 367: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 368: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 369: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 370: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 371: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 372: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 373: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 374: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur3                        x39  iso 978327.15 us    0.0 GB/s | spin    102.27 | str     99.21 us  211.5 GB/s | FAIL (recorded, not fatal) (spin too short)
+==PROF== Profiling "Kernel2" - 375: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 376: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 377: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 378: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 379: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur4                        x39  iso 479247.47 us    0.0 GB/s | spin    104.29 | str     99.68 us  210.5 GB/s | pass
+==PROF== Profiling "kernel" - 380: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 381: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 382: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 383: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 384: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur5                        x39  iso 525102.42 us    0.0 GB/s | spin    146.14 | str    145.52 us  144.2 GB/s | pass
+==PROF== Profiling "dot_kernel" - 385: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 386: 0%....50%....100% - 17 passes
+==PROF== Profiling "dot_kernel" - 387: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 388: 0%....50%....100% - 17 passes
+==PROF== Profiling "dot_kernel" - 389: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 390: 0%....50%....100% - 17 passes
+==PROF== Profiling "dot_kernel" - 391: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 392: 0%....50%....100% - 17 passes
+==PROF== Profiling "dot_kernel" - 393: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 394: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur6                        x39  iso 1025540.04 us    0.0 GB/s | spin    137.09 | str    123.68 us  169.7 GB/s | pass (spin too short)
+==PROF== Profiling "kernel" - 395: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 396: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 397: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 398: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 399: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur7                        x39  iso 519852.11 us    0.0 GB/s | spin    186.24 | str    183.30 us  114.5 GB/s | pass
+==PROF== Profiling "read_kernel" - 400: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 401: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 402: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 403: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 404: 0%....50%....100% - 17 passes
+  read     bf16 t256_g768                    x39  iso 457322.39 us    0.0 GB/s | spin     93.02 | str     91.07 us  230.3 GB/s | n/a
+==PROF== Profiling "gemv_vec" - 405: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 406: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 407: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 408: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 409: 0%....50%....100% - 17 passes
+  v3       int8 t128_r1_u4_xg_full           x77  iso 467715.85 us    0.0 GB/s | spin     53.89 | str     47.60 us  220.8 GB/s | pass
+==PROF== Profiling "read_kernel" - 410: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 411: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 412: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 413: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 414: 0%....50%....100% - 17 passes
+  read     int8 t256_g768                    x77  iso 455521.91 us    0.0 GB/s | spin     48.99 | str     46.79 us  224.3 GB/s | n/a
+==PROF== Profiling "gemv_vec" - 415: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 416: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 417: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 418: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 419: 0%....50%....100% - 17 passes
+  v4       int4 t128_r1_u2_xg_full           x149 iso 472245.91 us    0.0 GB/s | spin     30.59 | str     29.53 us  183.6 GB/s | pass
+==PROF== Profiling "gemv_vec" - 420: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 421: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 422: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 423: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 424: 0%....50%....100% - 17 passes
+  v4load   int4 t128_r1_u2_xg_full           x149 iso 464592.96 us    0.0 GB/s | spin     30.53 | str     29.64 us  182.9 GB/s | n/a
+==PROF== Profiling "read_kernel" - 425: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 426: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 427: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 428: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 429: 0%....50%....100% - 17 passes
+  read     int4 t256_g768                    x149 iso 461628.42 us    0.0 GB/s | spin     26.40 | str     29.82 us  181.3 GB/s | n/a
+
+== out  model.language_model.layers.0.linear_attn.out_proj.weight  M=2560 K=4096
+==PROF== Profiling "gemv_v0" - 430: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 431: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 432: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 433: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 434: 0%....50%....100% - 17 passes
+  v0       bf16 t256                         x39  iso 478740.45 us    0.0 GB/s | spin    427.87 | str    424.71 us   49.4 GB/s | pass
+==PROF== Profiling "gemv_v1" - 435: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 436: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 437: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 438: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 439: 0%....50%....100% - 17 passes
+  v1       bf16 t256                         x39  iso 459131.20 us    0.0 GB/s | spin    103.17 | str     97.27 us  215.7 GB/s | pass
+==PROF== Profiling "gemv_vec" - 440: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 441: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 442: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 443: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 444: 0%....50%....100% - 17 passes
+  v2       bf16 t128_r1_u1_xg_full           x39  iso 464345.06 us    0.0 GB/s | spin     99.30 | str     92.99 us  225.7 GB/s | pass
+==PROF== Profiling "kernel" - 445: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 446: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 447: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 448: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 449: 0%....50%....100% - 17 passes
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x39  iso 504993.99 us    0.0 GB/s | spin    130.91 | str    129.13 us  162.5 GB/s | pass (spin too short)
+==PROF== Profiling "kernel" - 450: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 451: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 452: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 453: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 454: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur0                        x39  iso 500988.98 us    0.0 GB/s | spin    130.18 | str    129.31 us  162.3 GB/s | pass
+==PROF== Profiling "kernel" - 455: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 456: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 457: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 458: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 459: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur1                        x39  iso 503033.42 us    0.0 GB/s | spin     96.10 | str     93.79 us  223.7 GB/s | pass
+==PROF== Profiling "Kernel2" - 460: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 461: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 462: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 463: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 464: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur2                        x39  iso 471383.45 us    0.0 GB/s | spin    102.24 | str     95.43 us  219.9 GB/s | pass
+==PROF== Profiling "Kernel2" - 465: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 466: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 467: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 468: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 469: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 470: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 471: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 472: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 473: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 474: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur3                        x39  iso 961337.71 us    0.0 GB/s | spin    101.38 | str    101.84 us  206.1 GB/s | FAIL (recorded, not fatal) (spin too short)
+==PROF== Profiling "Kernel2" - 475: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 476: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 477: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 478: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 479: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 480: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 481: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 482: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 483: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 484: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur4                        x39  iso 982206.60 us    0.0 GB/s | spin    103.30 | str     98.31 us  213.5 GB/s | pass (spin too short)
+==PROF== Profiling "kernel" - 485: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 486: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 487: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 488: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 489: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur5                        x39  iso 512553.41 us    0.0 GB/s | spin    144.10 | str    141.16 us  148.7 GB/s | pass
+==PROF== Profiling "dot_kernel" - 490: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 491: 0%....50%....100% - 17 passes
+==PROF== Profiling "dot_kernel" - 492: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 493: 0%....50%....100% - 17 passes
+==PROF== Profiling "dot_kernel" - 494: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 495: 0%....50%....100% - 17 passes
+==PROF== Profiling "dot_kernel" - 496: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 497: 0%....50%....100% - 17 passes
+==PROF== Profiling "dot_kernel" - 498: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 499: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur6                        x39  iso 1023303.10 us    0.0 GB/s | spin    114.53 | str     98.99 us  212.0 GB/s | pass
+==PROF== Profiling "kernel" - 500: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 501: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 502: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 503: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 504: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur7                        x39  iso 513930.54 us    0.0 GB/s | spin    190.34 | str    185.54 us  113.1 GB/s | pass
+==PROF== Profiling "read_kernel" - 505: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 506: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 507: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 508: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 509: 0%....50%....100% - 17 passes
+  read     bf16 t256_g768                    x39  iso 457054.63 us    0.0 GB/s | spin     98.24 | str     90.96 us  230.6 GB/s | n/a
+==PROF== Profiling "gemv_vec" - 510: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 511: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 512: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 513: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 514: 0%....50%....100% - 17 passes
+  v3       int8 t128_r1_u4_xg_full           x77  iso 468679.96 us    0.0 GB/s | spin     51.04 | str     47.91 us  219.3 GB/s | pass
+==PROF== Profiling "read_kernel" - 515: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 516: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 517: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 518: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 519: 0%....50%....100% - 17 passes
+  read     int8 t256_g768                    x77  iso 456420.68 us    0.0 GB/s | spin     49.89 | str     46.79 us  224.2 GB/s | n/a
+==PROF== Profiling "gemv_vec" - 520: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 521: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 522: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 523: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 524: 0%....50%....100% - 17 passes
+  v4       int4 t128_r1_u2_xg_full           x149 iso 469274.63 us    0.0 GB/s | spin     29.66 | str     29.57 us  183.3 GB/s | pass
+==PROF== Profiling "gemv_vec" - 525: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 526: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 527: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 528: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 529: 0%....50%....100% - 17 passes
+  v4load   int4 t128_r1_u2_xg_full           x149 iso 460386.87 us    0.0 GB/s | spin     52.19 | str     29.45 us  184.0 GB/s | n/a (spin too short)
+==PROF== Profiling "read_kernel" - 530: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 531: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 532: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 533: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 534: 0%....50%....100% - 17 passes
+  read     int4 t256_g768                    x149 iso 458928.16 us    0.0 GB/s | spin     28.26 | str     29.60 us  182.7 GB/s | n/a (spin too short)
+
+== k  model.language_model.layers.3.self_attn.k_proj.weight  M=1024 K=2560
+==PROF== Profiling "gemv_v0" - 535: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 536: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 537: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 538: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 539: 0%....50%....100% - 17 passes
+  v0       bf16 t256                         x154 iso 476273.04 us    0.0 GB/s | spin    274.24 | str    275.65 us   19.0 GB/s | pass
+==PROF== Profiling "gemv_v1" - 540: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 541: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 542: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 543: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 544: 0%....50%....100% - 17 passes
+  v1       bf16 t256                         x154 iso 461629.49 us    0.0 GB/s | spin     28.54 | str     29.80 us  176.2 GB/s | pass
+==PROF== Profiling "gemv_vec" - 545: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 546: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 547: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 548: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 549: 0%....50%....100% - 17 passes
+  v2       bf16 t128_r1_u1_xg_full           x154 iso 469751.86 us    0.0 GB/s | spin     28.51 | str     29.62 us  177.3 GB/s | pass
+==PROF== Profiling "kernel" - 550: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 551: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 552: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 553: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 554: 0%....50%....100% - 17 passes
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x154 iso 504626.65 us    0.0 GB/s | spin     38.75 | str     35.92 us  146.2 GB/s | pass
+==PROF== Profiling "kernel" - 555: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 556: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 557: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 558: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 559: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur0                        x154 iso 506265.78 us    0.0 GB/s | spin     37.76 | str     35.91 us  146.2 GB/s | pass
+==PROF== Profiling "kernel" - 560: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 561: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 562: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 563: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 564: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur1                        x154 iso 515206.60 us    0.0 GB/s | spin     29.50 | str     29.67 us  176.9 GB/s | pass
+==PROF== Profiling "kernel" - 565: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 566: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 567: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 568: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 569: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur2                        x154 iso 507406.34 us    0.0 GB/s | spin     38.75 | str     36.85 us  142.5 GB/s | pass
+==PROF== Profiling "Kernel2" - 570: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 571: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 572: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 573: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 574: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur3                        x154 iso 475995.12 us    0.0 GB/s | spin     32.64 | str     30.32 us  173.1 GB/s | pass
+==PROF== Profiling "Kernel2" - 575: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 576: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 577: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 578: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 579: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 580: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 581: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 582: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 583: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 584: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur4                        x154 iso 960972.29 us    0.0 GB/s | spin     32.58 | str     59.55 us   88.2 GB/s | pass (spin too short)
+==PROF== Profiling "Kernel2" - 585: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 586: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 587: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 588: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 589: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 590: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 591: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 592: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 593: 0%....50%....100% - 17 passes
+==PROF== Profiling "splitKreduce_kernel" - 594: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur5                        x154 iso 965833.68 us    0.0 GB/s | spin     31.62 | str     59.23 us   88.6 GB/s | FAIL (recorded, not fatal) (spin too short)
+==PROF== Profiling "dot_kernel" - 595: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 596: 0%....50%....100% - 17 passes
+==PROF== Profiling "dot_kernel" - 597: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 598: 0%....50%....100% - 17 passes
+==PROF== Profiling "dot_kernel" - 599: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 600: 0%....50%....100% - 17 passes
+==PROF== Profiling "dot_kernel" - 601: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 602: 0%....50%....100% - 17 passes
+==PROF== Profiling "dot_kernel" - 603: 0%....50%....100% - 17 passes
+==PROF== Profiling "reduce_1Block_kernel" - 604: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur6                        x154 iso 962633.73 us    0.0 GB/s | spin     38.78 | str     58.87 us   89.2 GB/s | pass
+==PROF== Profiling "kernel" - 605: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 606: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 607: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 608: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 609: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur7                        x154 iso 518165.89 us    0.0 GB/s | spin     55.17 | str     53.55 us   98.0 GB/s | pass
+==PROF== Profiling "read_kernel" - 610: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 611: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 612: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 613: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 614: 0%....50%....100% - 17 passes
+  read     bf16 t256_g768                    x154 iso 459680.33 us    0.0 GB/s | spin     26.46 | str     29.53 us  177.5 GB/s | n/a
+==PROF== Profiling "gemv_vec" - 615: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 616: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 617: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 618: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 619: 0%....50%....100% - 17 passes
+  v3       int8 t128_r1_u4_xg_full           x307 iso 471437.68 us    0.0 GB/s | spin     18.24 | str     29.41 us   89.5 GB/s | pass
+==PROF== Profiling "read_kernel" - 620: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 621: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 622: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 623: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 624: 0%....50%....100% - 17 passes
+  read     int8 t256_g768                    x307 iso 463791.35 us    0.0 GB/s | spin     16.26 | str     29.64 us   88.5 GB/s | n/a
+==PROF== Profiling "gemv_vec" - 625: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 626: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 627: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 628: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 629: 0%....50%....100% - 17 passes
+  v4       int4 t128_r1_u2_xg_full           x596 iso 480655.12 us    0.0 GB/s | spin     12.13 | str     29.39 us   46.2 GB/s | pass
+==PROF== Profiling "gemv_vec" - 630: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 631: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 632: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 633: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 634: 0%....50%....100% - 17 passes
+  v4load   int4 t128_r1_u2_xg_full           x596 iso 468995.67 us    0.0 GB/s | spin     12.16 | str     29.45 us   46.1 GB/s | n/a
+==PROF== Profiling "read_kernel" - 635: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 636: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 637: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 638: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 639: 0%....50%....100% - 17 passes
+  read     int4 t256_g768                    x596 iso 465352.26 us    0.0 GB/s | spin     10.08 | str     30.01 us   45.0 GB/s | n/a
+
+== lmhead  model.language_model.embed_tokens.weight  M=248320 K=2560
+==PROF== Profiling "gemv_v0" - 640: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 641: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 642: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 643: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v0" - 644: 0%....50%....100% - 17 passes
+  v0       bf16 t256                         x2   iso 803364.62 us    1.6 GB/s | spin  11483.23 | str  11319.54 us  112.4 GB/s | pass
+==PROF== Profiling "gemv_v1" - 645: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 646: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 647: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 648: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_v1" - 649: 0%....50%....100% - 17 passes
+  v1       bf16 t256                         x2   iso 712636.60 us    1.8 GB/s | spin   5680.35 | str   5795.73 us  219.5 GB/s | pass
+==PROF== Profiling "gemv_vec" - 650: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 651: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 652: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 653: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 654: 0%....50%....100% - 17 passes
+  v2       bf16 t128_r1_u1_xg_full           x2   iso 700559.08 us    1.8 GB/s | spin   5383.17 | str   5464.19 us  232.8 GB/s | pass
+==PROF== Profiling "kernel" - 655: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 656: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 657: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 658: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 659: 0%....50%....100% - 17 passes
+  cublas   bf16 GemmEx_OP_T_32F_DEFAULT      x2   iso 789860.78 us    1.6 GB/s | spin   7647.07 | str   7364.51 us  172.7 GB/s | pass
+==PROF== Profiling "kernel" - 660: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 661: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 662: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 663: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 664: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur0                        x2   iso 792777.16 us    1.6 GB/s | spin   7359.33 | str   7686.13 us  165.5 GB/s | pass
+==PROF== Profiling "kernel" - 665: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 666: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 667: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 668: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 669: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur1                        x2   iso 784815.49 us    1.6 GB/s | spin   7422.85 | str   7499.86 us  169.6 GB/s | pass
+==PROF== Profiling "Kernel2" - 670: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 671: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 672: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 673: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 674: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur2                        x2   iso 711742.00 us    1.8 GB/s | spin   5422.94 | str   5546.62 us  229.3 GB/s | pass
+==PROF== Profiling "kernel" - 675: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 676: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 677: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 678: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 679: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur3                        x2   iso 762430.73 us    1.7 GB/s | spin   5562.21 | str   5460.43 us  232.9 GB/s | pass
+==PROF== Profiling "Kernel2" - 680: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 681: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 682: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 683: 0%....50%....100% - 17 passes
+==PROF== Profiling "Kernel2" - 684: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur4                        x2   iso 713686.16 us    1.8 GB/s | spin   5633.82 | str   5749.15 us  221.2 GB/s | pass
+==PROF== Profiling "kernel" - 685: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 686: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 687: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 688: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 689: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur5                        x2   iso 798619.81 us    1.6 GB/s | spin   8802.18 | str   8582.46 us  148.2 GB/s | pass
+==PROF== Profiling "kernel" - 690: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 691: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 692: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 693: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 694: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur6                        x2   iso 810610.41 us    1.6 GB/s | spin   9336.61 | str   9267.25 us  137.2 GB/s | pass
+==PROF== Profiling "kernel" - 695: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 696: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 697: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 698: 0%....50%....100% - 17 passes
+==PROF== Profiling "kernel" - 699: 0%....50%....100% - 17 passes
+  cublaslt bf16 heur7                        x2   iso 890917.42 us    1.4 GB/s | spin  11763.81 | str  12009.60 us  105.9 GB/s | pass
+==PROF== Profiling "read_kernel" - 700: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 701: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 702: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 703: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 704: 0%....50%....100% - 17 passes
+  read     bf16 t256_g768                    x2   iso 697039.12 us    1.8 GB/s | spin   5475.58 | str   5432.96 us  234.0 GB/s | n/a
+==PROF== Profiling "gemv_vec" - 705: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 706: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 707: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 708: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 709: 0%....50%....100% - 17 passes
+  v3       int8 t128_r1_u4_xg_full           x2   iso 579004.46 us    1.1 GB/s | spin   2673.54 | str   2686.61 us  237.0 GB/s | pass
+==PROF== Profiling "read_kernel" - 710: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 711: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 712: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 713: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 714: 0%....50%....100% - 17 passes
+  read     int8 t256_g768                    x2   iso 552159.30 us    1.2 GB/s | spin   2698.08 | str   2841.76 us  223.9 GB/s | n/a
+==PROF== Profiling "gemv_vec" - 715: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 716: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 717: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 718: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 719: 0%....50%....100% - 17 passes
+  v4       int4 t128_r1_u2_xg_full           x3   iso 530770.26 us    0.6 GB/s | spin   1465.18 | str   1450.69 us  226.3 GB/s | pass
+==PROF== Profiling "gemv_vec" - 720: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 721: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 722: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 723: 0%....50%....100% - 17 passes
+==PROF== Profiling "gemv_vec" - 724: 0%....50%....100% - 17 passes
+  v4load   int4 t128_r1_u2_xg_full           x3   iso 523035.22 us    0.6 GB/s | spin   1470.14 | str   1395.19 us  235.3 GB/s | n/a
+==PROF== Profiling "read_kernel" - 725: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 726: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 727: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 728: 0%....50%....100% - 17 passes
+==PROF== Profiling "read_kernel" - 729: 0%....50%....100% - 17 passes
+  read     int4 t256_g768                    x3   iso 502024.23 us    0.7 GB/s | spin   1389.41 | str   1394.81 us  235.0 GB/s | n/a
+
+results/ncu/bench_under_ncu.csv: 126 rows in 383 s; every check passed
+==PROF== Disconnected from process 2068629
+==PROF== Report: /home/xiaohui_chen/tmp/en605617/ncu/ncu_final.ncu-rep

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Summarize an Nsight Compute run of `bench --mode ncu` (scripts/run_stage.sh ncu).
 
-Input: the raw-page CSV export of the report (`ncu --import r.ncu-rep --csv --page raw`)
+Input: the raw-page CSV export of the report
+(`ncu --import r.ncu-rep --csv --page raw --print-units base`)
 and the bench CSV written under the profiler (for the bytes each launch must read). Every
 profiled kernel is matched to its (matrix, format, kernel, configuration) through the NVTX
 range bench puts around the isolated launches ("iso <matrix> <fmt> <kernel> <config> x<R>").
@@ -49,12 +50,21 @@ def short_kernel(name):
     return name.split("(")[0][:60]
 
 
+TIME_TO_US = {"ns": 1e-3, "nsecond": 1e-3, "us": 1.0, "usecond": 1.0, "ms": 1e3, "msecond": 1e3, "s": 1e6, "second": 1e6}
+
+
 def load_raw(path):
+    """The raw page, exported with --print-units base (one unit per column)."""
     rows = list(csv.reader(open(path)))
     h, units = rows[0], rows[1]
-    for need, unit in (("lts__d_sectors_fill_sysmem.sum", "sector"), ("gpu__time_duration.sum", "us")):
-        if units[h.index(need)] != unit:
-            raise SystemExit(f"{need}: expected unit {unit!r}, got {units[h.index(need)]!r} (re-export with --print-units base?)")
+    for need in ("lts__d_sectors_fill_sysmem.sum", "lts__t_sectors_aperture_sysmem_op_read_lookup_miss.sum",
+                 "lts__t_sectors_op_read.sum"):
+        if units[h.index(need)] != "sector":
+            raise SystemExit(f"{need}: expected unit 'sector', got {units[h.index(need)]!r}")
+    tu = units[h.index("gpu__time_duration.sum")]
+    if tu not in TIME_TO_US:
+        raise SystemExit(f"gpu__time_duration.sum: unknown unit {tu!r}")
+    to_us = TIME_TO_US[tu]
     stall_cols = [(c, STALL_RE.match(c).group(1)) for c in h if STALL_RE.match(c)]
     out = []
     for r in rows[2:]:
@@ -69,7 +79,7 @@ def load_raw(path):
             "fill": num(d["lts__d_sectors_fill_sysmem.sum"]) * SECTOR,
             "miss": num(d["lts__t_sectors_aperture_sysmem_op_read_lookup_miss.sum"]) * SECTOR,
             "l2_read": num(d["lts__t_sectors_op_read.sum"]) * SECTOR,
-            "dur": num(d["gpu__time_duration.sum"]),
+            "dur": num(d["gpu__time_duration.sum"]) * to_us,
             "occ": num(d["sm__warps_active.avg.pct_of_peak_sustained_active"]),
             "sm": num(d["sm__throughput.avg.pct_of_peak_sustained_elapsed"]),
             "mem": num(d["gpu__compute_memory_throughput.avg.pct_of_peak_sustained_elapsed"]),

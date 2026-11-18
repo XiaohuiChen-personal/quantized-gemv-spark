@@ -311,6 +311,74 @@ Verdict ratios recomputed from the Nsight kernel durations (fair to cuBLAS, whos
 
 Kernels cuBLAS chose (`results/nsys/cublas_kernels.md`): every `cublasGemmEx` call runs one `internal::gemvx::kernel` instance. Its default for K = 2560/4096 and the fastest passing cuBLASLt algorithm are instances of that template with different template parameters and launch shapes (16 × 4 vs 32 × 4 threads per block on gate); which parameter matters is not resolved — another algorithm with the fast one's launch shape is also slow.
 
+## 16. H3 across all layers for typical inputs (open item 8.5)
+
+`results/accuracy/x_samples_all_layers.csv` (`scripts/x_sample_check.py --all-layers`): for every one of the 201 large matrices of all 32 layers and the LM head, the relative error for the fixed x and for 256 fresh Gaussian x (seed 7), same quantizer, double precision. The eight largest INT4 95th percentiles:
+
+| matrix | M × K | fixed x | mean over x | 95th pct | max | predicted | x > 15% (of 256) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| layers.31.self_attn.o_proj | 2560 × 4096 | 14.17% | 14.28% | 14.84% | 15.35% | 14.31% | 4 |
+| layers.27.self_attn.v_proj | 1024 × 2560 | 13.31% | 13.61% | 14.71% | 15.29% | 13.52% | 7 |
+| layers.31.self_attn.v_proj | 1024 × 2560 | 12.67% | 13.33% | 14.47% | 15.64% | 13.29% | 3 |
+| layers.27.self_attn.k_proj | 1024 × 2560 | 13.48% | 12.96% | 14.24% | 14.91% | 12.95% | 0 |
+| layers.31.self_attn.k_proj | 1024 × 2560 | 12.97% | 13.06% | 14.18% | 15.09% | 12.96% | 1 |
+| embed_tokens | 248320 × 2560 | 13.64% | 12.69% | 13.75% | 13.94% | 12.58% | 0 |
+| layers.0.linear_attn.in_proj_qkv | 8192 × 2560 | 12.92% | 12.74% | 13.67% | 14.09% | 12.62% | 0 |
+| layers.31.mlp.down_proj | 2560 × 9216 | 13.16% | 13.10% | 13.58% | 14.03% | 13.07% | 0 |
+
+- The mean over x matches √(Σδ²/Σw²) on every matrix (ratio 0.996–1.009), so the fixed x is one sample of a distribution the weights predict.
+- Every matrix's INT4 95th percentile is below 15% (largest 14.84%, layers.31.self_attn.o_proj) and every INT8 value of every x is below 2% (largest 1.76%).
+- 15 of 51456 single draws (0.03%) exceed 15% INT4 (largest 15.64%), all on layers.27.self_attn.v_proj (7), layers.31.self_attn.k_proj (1), layers.31.self_attn.o_proj (4), layers.31.self_attn.v_proj (3): full-attention matrices of the last layers, where the error is largest and, for the 1024-row k/v projections, averages over the fewest output rows, so it varies most from one x to the next.
+- Reading for the secondary result "H3 across all 32 layers": it holds for the fixed x and for the 95th percentile of random x on every matrix; it is not a bound that every individual x satisfies. The pre-registered H3 verdict (the nine hypothesis matrices) is unchanged.
+
+## 17. Nsight Compute: DRAM traffic and occupancy (open item 8.2)
+
+`results/ncu/` (`scripts/run_stage.sh ncu`, run with sudo because GPU counters are admin-only on this machine): `bench --mode ncu` makes five isolated launches per (matrix, kernel) and only those are profiled; the profiler flushes the caches before each replay pass, so every profiled launch reads its operand from DRAM; clocks are not locked (`--clock-control none`). The GB10 exposes no `dram__` counters (its memory is system LPDDR5x): DRAM reads are the L2 sectors filled from system memory (`lts__d_sectors_fill_sysmem` × 32 B), which equal the L2 misses to system memory to 0.01%. Medians over the five launches; full table in `results/ncu/summary.md`.
+
+| matrix | kernel | DRAM / stored | profiled µs | profiled DRAM GB/s | occupancy | SM busy | regs | grid × block | inst / KB | long-scoreboard share |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| gate | v1 warp/row | 1.000 | 251.6 | 188 | 81% | 10% | 38 | 1,152 × 256 | 97 | 0.65 |
+| gate | v2 BF16 | 1.000 | 217.5 | 217 | 86% | 3% | 40 | 2,304 × 128 | 69 | 0.99 |
+| gate | cuBLAS GemmEx | 1.001 | 320.1 | 148 | 24% | 8% | 164 | 2,304 × 64 | 137 | 0.57 |
+| gate | cuBLASLt best (heur1) | 1.001 | 257.6 | 183 | 24% | 11% | 164 | 2,304 × 128 | 162 | 0.53 |
+| gate | v3 INT8 | 1.000 | 108.1 | 219 | 95% | 9% | 38 | 2,304 × 128 | 193 | 0.96 |
+| gate | v4 INT4 | 1.000 | 60.6 | 201 | 89% | 19% | 40 | 2,304 × 128 | 459 | 0.92 |
+| gate | v4 load-only | 0.999 | 61.9 | 197 | 88% | 6% | 40 | 2,304 × 128 | 132 | 0.96 |
+| down | v1 warp/row | 1.000 | 254.9 | 185 | 85% | 10% | 38 | 320 × 256 | 88 | 0.54 |
+| down | v2 BF16 | 1.000 | 217.0 | 218 | 92% | 3% | 40 | 640 × 128 | 58 | 0.99 |
+| down | cuBLAS GemmEx | 1.001 | 246.5 | 192 | 24% | 10% | 164 | 640 × 128 | 129 | 0.44 |
+| down | cuBLASLt best (heur0) | 1.001 | 240.9 | 196 | 24% | 10% | 164 | 640 × 128 | 129 | 0.46 |
+| down | v3 INT8 | 1.000 | 114.2 | 207 | 95% | 7% | 38 | 640 × 128 | 169 | 0.95 |
+| down | v4 INT4 | 1.001 | 62.3 | 196 | 93% | 14% | 40 | 640 × 128 | 356 | 0.94 |
+| down | v4 load-only | 1.000 | 65.0 | 188 | 91% | 4% | 40 | 640 × 128 | 84 | 0.97 |
+| out | v1 warp/row | 1.000 | 105.5 | 199 | 85% | 11% | 38 | 320 × 256 | 92 | 0.58 |
+| out | v2 BF16 | 1.000 | 97.6 | 215 | 89% | 3% | 40 | 640 × 128 | 62 | 0.99 |
+| out | cuBLAS GemmEx | 1.002 | 132.6 | 158 | 23% | 8% | 164 | 640 × 64 | 127 | 0.48 |
+| out | cuBLASLt best (heur1) | 1.001 | 96.4 | 218 | 24% | 12% | 164 | 640 × 128 | 139 | 0.40 |
+| out | v3 INT8 | 1.001 | 53.4 | 197 | 92% | 7% | 38 | 640 × 128 | 174 | 0.94 |
+| out | v4 INT4 | 1.001 | 32.6 | 166 | 92% | 13% | 40 | 640 × 128 | 367 | 0.92 |
+| out | v4 load-only | 1.000 | 32.5 | 167 | 92% | 4% | 40 | 640 × 128 | 94 | 0.96 |
+| k | v1 warp/row | 1.001 | 29.2 | 180 | 41% | 10% | 38 | 128 × 256 | 97 | 0.83 |
+| k | v2 BF16 | 1.001 | 28.5 | 184 | 39% | 3% | 40 | 256 × 128 | 69 | 0.96 |
+| k | cuBLAS GemmEx | 1.006 | 40.1 | 132 | 21% | 7% | 164 | 256 × 64 | 137 | 0.34 |
+| k | cuBLASLt best (heur1) | 1.006 | 29.7 | 178 | 23% | 10% | 164 | 256 × 128 | 162 | 0.42 |
+| k | v3 INT8 | 1.003 | 20.5 | 129 | 44% | 5% | 38 | 256 × 128 | 193 | 0.92 |
+| k | v4 INT4 | 1.007 | 14.0 | 97 | 34% | 9% | 40 | 256 × 128 | 457 | 0.86 |
+| k | v4 load-only | 1.004 | 15.3 | 89 | 36% | 3% | 40 | 256 × 128 | 132 | 0.92 |
+| lmhead | v1 warp/row | 1.000 | 5689.6 | 224 | 82% | 12% | 38 | 31,040 × 256 | 97 | 0.60 |
+| lmhead | v2 BF16 | 1.000 | 5706.8 | 223 | 84% | 3% | 40 | 62,080 × 128 | 70 | 0.99 |
+| lmhead | cuBLAS GemmEx | 1.000 | 7441.0 | 171 | 25% | 9% | 164 | 31,040 × 128 | 137 | 0.55 |
+| lmhead | cuBLASLt best (heur3) | 1.000 | 5666.6 | 224 | 25% | 13% | 164 | 62,080 × 128 | 162 | 0.54 |
+| lmhead | v3 INT8 | 0.999 | 2846.4 | 224 | 91% | 9% | 38 | 62,080 × 128 | 193 | 0.97 |
+| lmhead | v4 INT4 | 0.999 | 1541.0 | 213 | 89% | 20% | 40 | 62,080 × 128 | 459 | 0.94 |
+| lmhead | v4 load-only | 0.999 | 1556.6 | 211 | 89% | 7% | 40 | 62,080 × 128 | 132 | 0.97 |
+
+- **Every kernel reads what it stores, once.** DRAM read bytes / bytes the launch must read: 0.999–1.016 over all 105 GEMV rows (v0 to cuBLASLt); no kernel re-reads weights from DRAM, so every rate difference is a difference in how fast the same bytes stream, and the stored-byte GB/s used throughout is the real DRAM traffic. (It also rules out a hidden cache benefit in the profiled launches.)
+- **INT4 decode costs instructions, not time.** v4 executes 3.5–4.2× the warp instructions of its load-only variant per byte on gate/down/LM head, yet takes 0.96–0.99× its time; the SM stays mostly idle (SM busy ≤ 20%) and most stall reasons are long-scoreboard waits on loads. This is the counter-based confirmation of §11: v4 is memory-bound.
+- **cuBLAS's GEMV kernels run at low occupancy:** every `gemvx` variant uses 164 registers per thread and reaches about 24% achieved occupancy (v2: 40 registers, 86%), so each warp must keep more bytes in flight to cover DRAM latency. Occupancy alone does not explain the slow default at K = 2560, though: on gate the default (blocks of 64 threads) and the fast cuBLASLt algorithm (blocks of 128 threads) have the same registers and occupancy, and at K = 9216 (down) the default reaches 192 GB/s profiled with the same occupancy. The remaining difference lies in the template parameters (work per warp), which these counters do not resolve; §15's open question stays open, narrowed to that.
+- **v0 is slow because it has too few threads:** one thread per row is a grid of 10 blocks of 256 threads on `out` (48 SMs), 16% occupancy, and its L2 read traffic equals its DRAM traffic, so the textbook "uncoalesced" penalty shows up here as too little parallelism, not as extra DRAM or L2 bytes (*reading:* each thread's sequential 2-byte loads are served from L1 after the first touch of a sector).
+- Kernel-replay profiling (caches flushed before every pass, each launch serialized with idle time around it) lengthens the kernels: profiled / Nsight Systems duration (§15) median 1.15, range 1.01–1.79 over the ladder rows, the most for the shortest kernels (v4 on the 5 MB k_proj). The profiled durations and GB/s are therefore used only for byte counts and for comparisons under identical conditions (e.g. v4 vs its load-only variant), not as timings.
+
 ## Figures
 
 - `figures/fig_ladder.png`: Achieved bandwidth (isolated median over three executions, GB/s on the bytes each format stores) of the kernel ladder and cuBLAS on one matrix of each shape. Black ticks: a plain read of the same bytes in the same format and rotation (the size-matched reference); dashed: rated 273 GB/s and the proposal's 241 GB/s.

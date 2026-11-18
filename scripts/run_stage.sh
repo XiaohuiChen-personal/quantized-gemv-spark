@@ -16,6 +16,12 @@
 #   scripts/run_stage.sh xsample   256 random x for every large matrix of all 32 layers
 #                                  (CPU)                             -> results/accuracy/
 #   scripts/run_stage.sh ncu       Nsight Compute (needs sudo here)  -> results/ncu/
+#   scripts/run_stage.sh realx     real activations: capture (vLLM image, transformers),
+#                                  INT8/INT4 error (CPU), GPU kernels on real x
+#                                                                    -> results/accuracy/real_x/
+#   scripts/run_stage.sh e2e       INT4/INT8 GPTQ checkpoints from this quantizer, then
+#                                  vLLM decode tokens/s and perplexity, BF16/INT8/INT4,
+#                                  three executions                  -> results/e2e/
 #
 # Every stage records provenance (UTC time, host, git commit, GPU state) and refuses to
 # time anything while another process uses the GPU. Timed stages log GPU clocks, power
@@ -24,7 +30,7 @@ set -euo pipefail
 export PATH=/usr/local/cuda/bin:$PATH
 export OMP_WAIT_POLICY=PASSIVE  # OpenMP threads must not spin during GPU timing
 cd "$(dirname "$0")/.."
-stage=${1:?usage: run_stage.sh test|tune|final|rotation|nsys|marlin|sweep|xsample|ncu}
+stage=${1:?usage: run_stage.sh test|tune|final|rotation|nsys|marlin|sweep|xsample|ncu|realx|e2e}
 
 env_report() {
     echo "# $(date -u +%FT%TZ) host=$(hostname) git=$(git describe --always --dirty) stage=$stage"
@@ -48,6 +54,18 @@ gpu_log_start() {
 }
 gpu_log_stop() { [ -n "$GPULOG" ] && kill "$GPULOG" 2>/dev/null || true; GPULOG=; }
 trap gpu_log_stop EXIT
+# python3 in the vLLM image (vLLM 0.16, transformers 5.3), as this user, with the Hugging
+# Face cache at /hf and the repository at /work. Offline: every input is fetched before
+# (scripts/fetch_extras.py). git cannot describe the mounted repository inside the
+# container (another uid), so the description is passed in GIT_DESC.
+VLLM_IMAGE=vllm-node-qwen35:latest
+docker_py() {
+    mkdir -p ~/tmp/en605617/vllm-cache
+    docker run --rm --gpus all --ipc=host --user "$(id -u):$(id -g)" -e HOME=/tmp -e HF_HOME=/hf \
+        -e HF_HUB_OFFLINE=1 -e VLLM_CACHE_ROOT=/vllm-cache -e GIT_DESC="$(git describe --always --dirty)" \
+        -v "$HOME/.cache/huggingface:/hf" -v ~/tmp/en605617/vllm-cache:/vllm-cache -v "$PWD":/work -w /work \
+        "$VLLM_IMAGE" python3 "$@"
+}
 
 make -s all
 
@@ -159,12 +177,64 @@ ncu)
         -f -o "$rep" ./build/bench --mode ncu --only gate,down,qkv,z,out,k,lmhead \
         --out results/ncu/bench_under_ncu.csv > results/ncu/bench_under_ncu.log 2>&1
     sudo -n chown -R "$(id -u):$(id -g)" results/ncu ~/tmp/en605617/ncu
-    ncu --import "$rep.ncu-rep" --csv --page raw > results/ncu/ncu_raw.csv
+    ncu --import "$rep.ncu-rep" --csv --page raw --print-units base > results/ncu/ncu_raw.csv
     python3 scripts/ncu_summary.py results/ncu/ncu_raw.csv results/ncu/bench_under_ncu.csv \
         --csv results/ncu/summary.csv > results/ncu/summary.md
     gzip -f results/ncu/ncu_raw.csv
     tail -1 results/ncu/bench_under_ncu.log
     head -3 results/ncu/summary.md | tail -1
+    ;;
+realx)
+    require_quiet
+    out=results/accuracy/real_x
+    mkdir -p "$out/gpu"
+    [ -f data/extras.json ] || python3 scripts/fetch_extras.py
+    env_report > "$out/env.txt"
+    docker_py scripts/capture_activations.py --out data/real_x > "$out/capture.log" 2>&1
+    rm -rf data/real_x_gpu
+    python3 scripts/real_x_accuracy.py --gpu-dirs data/real_x_gpu --out "$out" > "$out/accuracy.log" 2>&1
+    # The GPU kernels on two real x per benchmarked matrix: correctness checks and error.
+    : > "$out/gpu.log"
+    for d in data/real_x_gpu/*/; do
+        id=$(basename "$d")
+        ./build/bench --mode quick --data "$d" --out "$out/gpu/$id.csv" >> "$out/gpu.log" 2>&1
+    done
+    python3 scripts/real_x_accuracy.py --collect-gpu "$out" | tee -a "$out/gpu.log"
+    tail -1 "$out/capture.log"
+    tail -1 "$out/accuracy.log"
+    ;;
+e2e)
+    require_quiet
+    out=results/e2e
+    mkdir -p "$out" data/ckpt
+    [ -f data/extras.json ] || python3 scripts/fetch_extras.py
+    env_report > "$out/env.txt"
+    for b in 4 8; do
+        if [ ! -f data/ckpt/int$b/quantization_info.json ]; then
+            python3 scripts/make_quant_checkpoint.py --bits $b --out data/ckpt/int$b --verify-data data \
+                > "$out/ckpt_int$b.log" 2>&1
+        fi
+        cp data/ckpt/int$b/quantization_info.json "$out/ckpt_int$b.json"
+    done
+    bf16=/hf/hub/models--Qwen--Qwen3.5-4B/snapshots/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
+    gpu_log_start "$out/gpu_log.csv"
+    for run in 1 2 3; do  # three executions, the order of the formats shuffled per execution
+        order=$(python3 -c "import random; f = ['bf16', 'int8', 'int4']; random.Random($run).shuffle(f); print(*f)")
+        for label in $order; do
+            case $label in
+                bf16) model=$bf16 ;;
+                *) model=/work/data/ckpt/$label ;;
+            esac
+            if [ -n "$(nvidia-smi --query-compute-apps=pid --format=csv,noheader)" ]; then
+                echo "another process is using the GPU before $label run $run" >&2; exit 1
+            fi
+            docker_py scripts/e2e_decode.py --model "$model" --label "$label" --reps 5 --warmup 2 \
+                --out "$out/${label}_run$run.json" > "$out/${label}_run$run.log" 2>&1
+            grep -E "decode tokens/s|perplexity" "$out/${label}_run$run.log"
+        done
+    done
+    gpu_log_stop
+    env_report >> "$out/env.txt"
     ;;
 *)
     echo "unknown stage $stage" >&2

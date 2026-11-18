@@ -644,6 +644,290 @@ class Analysis:
                       "another algorithm with the fast one's launch shape is also slow.", ""]
         self.md += lines
 
+    # ------------------------------------------------------------ after the freeze (c1d91fc)
+    # The sections below add the open items of the project plan (Step 8) in new result
+    # directories; they do not change the pre-registered verdicts above.
+    def many_x_all_layers(self):
+        p = os.path.join(self.R, "accuracy", "x_samples_all_layers.csv")
+        if not os.path.exists(p):
+            return
+        x = read(p)
+        n = int(x.n_x.iloc[0])
+        top = x.sort_values("int4_p95", ascending=False).head(8)
+        t = pd.DataFrame({"matrix": top.short, "M × K": [f"{m} × {k}" for m, k in zip(top.M, top.K)],
+                          "fixed x": top.int4_fixed_x, "mean over x": top.int4_mean, "95th pct": top.int4_p95,
+                          "max": top.int4_max, "predicted": top.pred_int4, f"x > 15% (of {n})": top.n_int4_over_15pct})
+        over = x[x.n_int4_over_15pct > 0]
+        ratio = x.int4_mean / x.pred_int4
+        self.xs_all = x
+        pc = {c: "{:.2%}" for c in ("fixed x", "mean over x", "95th pct", "max", "predicted")}
+        self.md += ["## 16. H3 across all layers for typical inputs (open item 8.5)", "",
+                    f"`results/accuracy/x_samples_all_layers.csv` (`scripts/x_sample_check.py --all-layers`): for every one "
+                    f"of the {len(x)} large matrices of all 32 layers and the LM head, the relative error for the fixed x and "
+                    f"for {n} fresh Gaussian x (seed 7), same quantizer, double precision. The eight largest INT4 95th "
+                    "percentiles:", "", md_table(t, pc), "",
+                    f"- The mean over x matches √(Σδ²/Σw²) on every matrix (ratio {ratio.min():.3f}–{ratio.max():.3f}), so the "
+                    "fixed x is one sample of a distribution the weights predict.",
+                    f"- Every matrix's INT4 95th percentile is below 15% (largest {fmt_pct(x.int4_p95.max(), 2)}, "
+                    f"{x.sort_values('int4_p95').short.iloc[-1]}) and every INT8 value of every x is below 2% (largest "
+                    f"{fmt_pct(x.int8_max.max(), 2)}).",
+                    f"- {int(x.n_int4_over_15pct.sum())} of {len(x) * n} single draws ({fmt_pct(x.n_int4_over_15pct.sum() / (len(x) * n), 2)}) "
+                    f"exceed 15% INT4 (largest {fmt_pct(x.int4_max.max(), 2)}), all on "
+                    + ", ".join(f"{r.short} ({int(r.n_int4_over_15pct)})" for _, r in over.iterrows())
+                    + ": full-attention matrices of the last layers, where the error is largest and, for the 1024-row k/v "
+                    "projections, averages over the fewest output rows, so it varies most from one x to the next.",
+                    "- Reading for the secondary result \"H3 across all 32 layers\": it holds for the fixed x and for the "
+                    "95th percentile of random x on every matrix; it is not a bound that every individual x satisfies. The "
+                    "pre-registered H3 verdict (the nine hypothesis matrices) is unchanged.", ""]
+
+    def ncu(self):
+        p = os.path.join(self.R, "ncu", "summary.csv")
+        if not os.path.exists(p):
+            return
+        s = pd.read_csv(p)
+        self.ncu_df = s
+        gemv = s[s.kernel != "read"]
+        show = []
+        for m in ["gate", "down", "out", "k", "lmhead"]:
+            lt = self.row(m, "cublaslt")
+            for k, cfg in (("v1", None), ("v2", None), ("cublas", None), ("cublaslt", lt.config if lt is not None else None),
+                           ("v3", None), ("v4", None), ("v4load", None)):
+                r = s[(s.matrix == m) & (s.kernel == k)]
+                if cfg:
+                    r = r[r.config == cfg]
+                if len(r):
+                    r = r.iloc[0]
+                    show.append({"matrix": m, "kernel": KLABEL.get(k, k) + (f" ({cfg})" if cfg else ""),
+                                 "DRAM / stored": r.dram_over_stored, "profiled µs": r.duration_us, "profiled DRAM GB/s": r.dram_gbps,
+                                 "occupancy": r.occupancy_pct / 100, "SM busy": r.sm_pct / 100, "regs": int(r.registers),
+                                 "grid × block": f"{r.grid} × {r.block}", "inst / KB": r.inst_per_kb,
+                                 "long-scoreboard share": r.long_scoreboard})
+        t = pd.DataFrame(show)
+        nsr = [r.duration_us / self.nt(r.matrix, r.kernel) for _, r in gemv.iterrows()
+               if r.kernel in ("v1", "v2", "v3", "v4", "cublas") and self.nt(r.matrix, r.kernel) == self.nt(r.matrix, r.kernel)]
+
+        def one(m, k):
+            r = s[(s.matrix == m) & (s.kernel == k)]
+            return r.iloc[0] if len(r) else None
+        big = ["gate", "down", "lmhead"]
+        dec = [one(m, "v4").inst_per_kb / one(m, "v4load").inst_per_kb for m in big]
+        tdec = [one(m, "v4").duration_us / one(m, "v4load").duration_us for m in big]
+        cb, v2 = one("gate", "cublas"), one("gate", "v2")
+        lt_gate = s[(s.matrix == "gate") & (s.kernel == "cublaslt") & (s.config == self.row("gate", "cublaslt").config)].iloc[0]
+        v0 = one("out", "v0")
+        self.md += ["## 17. Nsight Compute: DRAM traffic and occupancy (open item 8.2)", "",
+                    "`results/ncu/` (`scripts/run_stage.sh ncu`, run with sudo because GPU counters are admin-only on this "
+                    "machine): `bench --mode ncu` makes five isolated launches per (matrix, kernel) and only those are "
+                    "profiled; the profiler flushes the caches before each replay pass, so every profiled launch reads its "
+                    "operand from DRAM; clocks are not locked (`--clock-control none`). The GB10 exposes no `dram__` counters "
+                    "(its memory is system LPDDR5x): DRAM reads are the L2 sectors filled from system memory "
+                    "(`lts__d_sectors_fill_sysmem` × 32 B), which equal the L2 misses to system memory to "
+                    f"{fmt_pct(abs(s.miss_over_fill - 1).max(), 2)}. Medians over the five launches; full table in "
+                    "`results/ncu/summary.md`.", "",
+                    md_table(t, {"DRAM / stored": "{:.3f}", "profiled µs": "{:.1f}", "profiled DRAM GB/s": "{:.0f}", "occupancy": "{:.0%}",
+                                 "SM busy": "{:.0%}", "inst / KB": "{:.0f}", "long-scoreboard share": "{:.2f}"}), "",
+                    f"- **Every kernel reads what it stores, once.** DRAM read bytes / bytes the launch must read: "
+                    f"{gemv.dram_over_stored.min():.3f}–{gemv.dram_over_stored.max():.3f} over all {len(gemv)} GEMV rows (v0 to "
+                    "cuBLASLt); no kernel re-reads weights from DRAM, so every rate difference is a difference in how fast "
+                    "the same bytes stream, and the stored-byte GB/s used throughout is the real DRAM traffic. (It also "
+                    "rules out a hidden cache benefit in the profiled launches.)",
+                    f"- **INT4 decode costs instructions, not time.** v4 executes {min(dec):.1f}–{max(dec):.1f}× the warp "
+                    f"instructions of its load-only variant per byte on gate/down/LM head, yet takes "
+                    f"{min(tdec):.2f}–{max(tdec):.2f}× its time; the SM stays mostly idle (SM busy ≤ "
+                    f"{fmt_pct(s[s.kernel == 'v4'].sm_pct.max() / 100, 0)}) and most stall reasons are long-scoreboard waits on "
+                    "loads. This is the counter-based confirmation of §11: v4 is memory-bound.",
+                    f"- **cuBLAS's GEMV kernels run at low occupancy:** every `gemvx` variant uses {int(cb.registers)} "
+                    f"registers per thread and reaches about {fmt_pct(cb.occupancy_pct / 100, 0)} achieved occupancy (v2: "
+                    f"{int(v2.registers)} registers, {fmt_pct(v2.occupancy_pct / 100, 0)}), so each warp must keep more bytes in "
+                    "flight to cover DRAM latency. Occupancy alone does not explain the slow default at K = 2560, though: "
+                    f"on gate the default (blocks of {cb.block} threads) and the fast cuBLASLt algorithm (blocks of "
+                    f"{lt_gate.block} "
+                    "threads) have the same registers and occupancy, and at K = 9216 (down) the default reaches "
+                    f"{one('down', 'cublas').dram_gbps:.0f} GB/s profiled with the same occupancy. The remaining difference lies "
+                    "in the template parameters (work per warp), which these counters do not resolve; §15's open question "
+                    "stays open, narrowed to that.",
+                    f"- **v0 is slow because it has too few threads:** one thread per row is a grid of {v0.grid} blocks of "
+                    f"{v0.block} threads on `out` (48 SMs), {fmt_pct(v0.occupancy_pct / 100, 0)} occupancy, and its L2 read "
+                    "traffic equals its DRAM traffic, so the textbook \"uncoalesced\" penalty shows up here as too little "
+                    "parallelism, not as extra DRAM or L2 bytes (*reading:* each thread's sequential 2-byte loads are served "
+                    "from L1 after the first touch of a sector).",
+                    f"- Kernel-replay profiling (caches flushed before every pass, each launch serialized with idle time "
+                    f"around it) lengthens the kernels: profiled / Nsight Systems duration (§15) median "
+                    f"{statistics.median(nsr):.2f}, range {min(nsr):.2f}–{max(nsr):.2f} over the ladder rows, the most for the "
+                    "shortest kernels (v4 on the 5 MB k_proj). The profiled durations and GB/s are therefore used only for "
+                    "byte counts and for comparisons under identical conditions (e.g. v4 vs its load-only variant), not as "
+                    "timings.", ""]
+
+    def real_x(self):
+        d = os.path.join(self.R, "accuracy", "real_x")
+        p = os.path.join(d, "benchmarked.csv")
+        if not os.path.exists(p):
+            return
+        b = read(p)
+        self.rx = b
+        cm = os.path.join(d, "capture_manifest.json")
+        cap = __import__("json").load(open(cm)) if os.path.exists(cm) else None
+        t = pd.DataFrame({"matrix": b.matrix, "input": b.site, "INT8 pooled": b.int8_pooled, "INT8 max": b.int8_max,
+                          "INT4 pooled": b.int4_pooled, "INT4 median": b.int4_median, "INT4 p95": b.int4_p95,
+                          "INT4 max": b.int4_max, "Gaussian x": b.gauss_int4, "predicted": b.pred_int4,
+                          "weighted pred.": b.wpred_int4, "x peak/RMS": b.x_peak_over_rms_median})
+        pc = {c: "{:.2%}" for c in t.columns if c not in ("matrix", "input", "x peak/RMS")} | {"x peak/RMS": "{:.1f}"}
+        hyp = b[b.matrix.isin(HYP_MATS)]
+        lines = ["## 18. Accuracy with real activations (open item 8.3)", "",
+                 "`results/accuracy/real_x/` (`scripts/run_stage.sh realx`): the BF16 model (transformers, in the vLLM "
+                 "image) runs over " + (f"{len(cap['windows'])} windows of {cap['window_len']} tokens of the WikiText-2 test "
+                 f"text (`{cap['text']['repo']}` at `{cap['text']['revision'][:7]}`; the model's perplexity on them is "
+                 f"{cap['ppl_all_windows']:.2f}, a sanity check)" if cap else "WikiText-2 test windows")
+                 + " and every large linear layer's input is recorded at every position (each position is one decode-step "
+                 "input). Errors use the same quantizer and double precision; `pooled` = √(Σₜ‖ΔW xₜ‖² / Σₜ‖W xₜ‖²) over "
+                 "all tokens, `weighted pred.` = √(Σₖ mₖ‖δ₍:,ₖ₎‖² / Σₖ mₖ‖w₍:,ₖ₎‖²) with mₖ = mean xₖ² (the Gaussian "
+                 "prediction with the measured per-channel energy), `x peak/RMS` = median over tokens of max|x| / RMS(x).", "",
+                 md_table(t, pc), ""]
+        lines += [f"- On the nine hypothesis matrices the pooled real-x error is INT8 {fmt_pct(hyp.int8_pooled.min(), 2)}–"
+                  f"{fmt_pct(hyp.int8_pooled.max(), 2)} and INT4 {fmt_pct(hyp.int4_pooled.min(), 2)}–{fmt_pct(hyp.int4_pooled.max(), 2)} "
+                  f"(Gaussian x: {fmt_pct(hyp.gauss_int8.min(), 2)}–{fmt_pct(hyp.gauss_int8.max(), 2)} and "
+                  f"{fmt_pct(hyp.gauss_int4.min(), 2)}–{fmt_pct(hyp.gauss_int4.max(), 2)}); per token the largest are "
+                  f"{fmt_pct(hyp.int8_max.max(), 2)} (INT8) and {fmt_pct(hyp.int4_max.max(), 2)} (INT4); tokens above the H3 "
+                  f"thresholds: {int(hyp.n_int8_over.sum())} (INT8 > 2%) and {int(hyp.n_int4_over.sum())} (INT4 > 15%) of "
+                  f"{len(hyp) * int(b.tokens.iloc[0])}.",
+                  f"- Weighted prediction vs pooled real-x error, INT4: ratio {(b.wpred_int4 / b.int4_pooled).min():.2f}–"
+                  f"{(b.wpred_int4 / b.int4_pooled).max():.2f} (plain prediction: {(b.pred_int4 / b.int4_pooled).min():.2f}–"
+                  f"{(b.pred_int4 / b.int4_pooled).max():.2f}): how much of the change from random to real x the per-channel "
+                  "energy of the activations explains; the rest comes from correlations between channels.",
+                  f"- Without the first token of each window (position 0, the \"attention sink\"): pooled INT4 "
+                  f"{fmt_pct(b.int4_pooled_pos1.min(), 2)}–{fmt_pct(b.int4_pooled_pos1.max(), 2)}, largest per token "
+                  f"{fmt_pct(b.int4_max_pos1.max(), 2)}."]
+        ap = os.path.join(d, "all_layers.csv")
+        if os.path.exists(ap):
+            a = read(ap)
+            self.rx_all = a
+            w4, w8 = a.sort_values("int4_pooled").iloc[-1], a.sort_values("int8_pooled").iloc[-1]
+            lines.append(f"- All {len(a)} large matrices of all 32 layers (every {int(b.tokens.iloc[0] // a.tokens.iloc[0])}th "
+                         f"token, {int(a.tokens.iloc[0])} tokens each, `all_layers.csv`): worst pooled INT8 "
+                         f"{fmt_pct(w8.int8_pooled, 2)} ({w8.short}) and INT4 {fmt_pct(w4.int4_pooled, 2)} ({w4.short}); "
+                         f"tokens above 15% INT4: {int(a.n_int4_over.sum())} of {len(a) * int(a.tokens.iloc[0])} (in "
+                         f"{int((a.n_int4_over > 0).sum())} matrices); above 2% INT8: {int(a.n_int8_over.sum())}; "
+                         f"pooled real-x / Gaussian-x INT4 error: median {(a.int4_pooled / a.gauss_int4).median():.2f}, range "
+                         f"{(a.int4_pooled / a.gauss_int4).min():.2f}–{(a.int4_pooled / a.gauss_int4).max():.2f}.")
+        gp = os.path.join(d, "gpu_check.csv")
+        if os.path.exists(gp):
+            g = read(gp)
+            q = g[g.fmt != "bf16"]
+            bad = g[(g.check_pass != "pass") | (g.check_rad_pass != "pass") | (g.recheck_pass != "pass") | (g.bitwise_same != 1)]
+            dev = (q.gpu_rel_err / q.numpy_rel_err - 1).abs()
+            lines.append(f"- GPU kernels on real x (`gpu_check.csv`: v0–v4 and cuBLAS on two real tokens per matrix — the "
+                         f"median-error and the worst-error token): {len(g) - len(bad)} of {len(g)} rows pass every correctness "
+                         f"check; the v3/v4 GPU output errors agree with NumPy within {fmt_pct(dev.max(), 1)} (relative; the GPU "
+                         "output adds BF16 rounding).")
+        lines += ["- Reading: H3 is pre-registered for random x and its verdict stands; these numbers say how far that "
+                  "result transfers to the inputs the model actually produces. They are still per-matrix output errors, "
+                  "not model quality; §19 gives the perplexity of the whole quantized model.", ""]
+        self.md += lines
+
+    def gemv_model(self, pick):
+        """GEMV-only time per token (µs, streamed): sum over the large GEMVs in data/inventory.csv of the time of
+        their shape; pick(is_lm_head) -> (kernel, fmt) of this project's final set, or 'marlin'."""
+        inv = pd.read_csv(os.path.join(self.D, "inventory.csv"))
+        shape_to = {}
+        for m in ALL_MATS:
+            r = self.row(m, "v2")
+            shape_to.setdefault((int(r.M), int(r.K)), []).append(m)
+        mr = None
+        runs = sorted(glob.glob(os.path.join(self.R, "marlin", "marlin_run[0-9].csv")))
+        if runs:
+            mr = pd.concat([read(p) for p in runs]).groupby("matrix").marlin_str_us.median()
+        tot, byts = 0.0, 0.0
+        for _, r in inv.iterrows():
+            ms = shape_to.get((r.M, r.K))
+            if not ms:
+                byts += r.bytes  # small weights (in_proj_a/b) stay BF16; time not modelled
+                continue
+            k = pick(r.type == "lm_head")
+            if k == "marlin":
+                tot += statistics.median(mr[m] for m in ms)
+                byts += statistics.median(self.row(m, "v4").bytes for m in ms)
+            else:
+                tot += statistics.median(self.t(m, k[0], "stream") for m in ms)
+                byts += statistics.median(self.row(m, k[0], k[1]).bytes for m in ms)
+        return tot, byts
+
+    def e2e(self):
+        files = sorted(glob.glob(os.path.join(self.R, "e2e", "*_run[0-9].json")))
+        if not files:
+            return
+        import json
+        res = [json.load(open(p)) | {"run": int(re.search(r"run(\d)", p).group(1))} for p in files]
+        rows = []
+        for r in res:
+            for P, c in r["contexts"].items():
+                rows.append({"format": r["label"], "run": r["run"], "P": int(P), "tok_s": c["decode_tokens_per_s"],
+                             "ms": c["ms_per_token"], "first_ms": c["prefill_plus_first_ms"],
+                             "ppl": r.get("ppl", {}).get("perplexity", float("nan"))})
+        e = pd.DataFrame(rows)
+        med = e.groupby(["format", "P"]).agg(tok_s=("tok_s", "median"), lo=("tok_s", "min"), hi=("tok_s", "max"),
+                                             first_ms=("first_ms", "median"), ppl=("ppl", "median"), n=("run", "nunique")).reset_index()
+        Ps = sorted(e.P.unique())
+        models = {"bf16": ("all cuBLAS BF16 (what vLLM runs)", lambda lm: ("cublas", "bf16")),
+                  "int8": ("v3 layers + cuBLAS BF16 LM head", lambda lm: ("cublas", "bf16") if lm else ("v3", "int8")),
+                  "int4": ("Marlin layers + cuBLAS BF16 LM head", lambda lm: ("cublas", "bf16") if lm else "marlin")}
+        alt = {"int4": ("v4 layers + cuBLAS BF16 LM head", lambda lm: ("cublas", "bf16") if lm else ("v4", "int4"))}
+        tab = []
+        for f in ("bf16", "int8", "int4"):
+            if f not in set(med.format):
+                continue
+            tm, by = self.gemv_model(models[f][1])
+            row = {"format": f.upper()}
+            for P in Ps:
+                m = med[(med.format == f) & (med.P == P)].iloc[0]
+                row[f"decode tok/s, P={P}"] = m.tok_s
+                row[f"range P={P}"] = f"{m.lo:.1f}–{m.hi:.1f}"
+            row["GEMV model tok/s"] = 1e6 / tm
+            row["GEMV model"] = models[f][0]
+            row["byte ceiling tok/s"] = PROPOSAL_REF * 1e9 / by
+            row["GEMV share of decode, P=" + str(Ps[0])] = (tm / 1e3) / med[(med.format == f) & (med.P == Ps[0])].iloc[0].pipe(lambda m: 1e3 / m.tok_s)
+            row["perplexity"] = med[med.format == f].ppl.median()
+            tab.append(row)
+        t = pd.DataFrame(tab)
+        self.e2e_tab, self.e2e_med = t, med
+        cont = {r["label"]: r["contexts"][str(Ps[0])]["continuation"] for r in res if r["run"] == 1}
+        agree = []
+        for f in ("int8", "int4"):
+            if f in cont and "bf16" in cont:
+                a, b = cont["bf16"], cont[f]
+                first = next((i for i, (x, y) in enumerate(zip(a, b)) if x != y), len(a))
+                agree.append(f"{f.upper()}: first {first} of {len(a)} greedy tokens identical to BF16")
+        tm4, _ = self.gemv_model(alt["int4"][1])
+        ck = {}
+        for b in (4, 8):
+            cp = os.path.join(self.R, "e2e", f"ckpt_int{b}.json")
+            if os.path.exists(cp):
+                ck[b] = json.load(open(cp))
+        r0 = res[0]
+        fmtc = {c: "{:.1f}" for c in t.columns if "tok/s" in c} | {"perplexity": "{:.3f}"} | \
+            {c: "{:.0%}" for c in t.columns if c.startswith("GEMV share")}
+        self.md += ["## 19. End-to-end decode in vLLM (open item 8.4)", "",
+                    f"`results/e2e/` (`scripts/run_stage.sh e2e`): vLLM {r0['vllm']} ({r0['device']}), batch 1, greedy, "
+                    "prefix caching off, CUDA graphs on, prompt = the first P tokens of the WikiText-2 test text, "
+                    f"{r0['decode_tokens']} forced decode steps; decode tokens/s = {r0['decode_tokens']} / (median t(1 + "
+                    f"{r0['decode_tokens']} tokens) − median t(1 token)), so prefill and per-request costs cancel; "
+                    f"{int(med.n.max())} executions (separate processes, formats in shuffled order), median shown with the "
+                    "range. The INT8/INT4 checkpoints are written by `scripts/make_quant_checkpoint.py` from this project's "
+                    "quantizer in GPTQ format (served by vLLM's Marlin kernels); every large layer matrix is quantized "
+                    + (f"({ck[4]['quantized_matrices']} matrices; the 11 benchmarked ones verified bit-exact against the kernels' "
+                       "operands)" if 4 in ck else "")
+                    + ", the tied embedding/LM head and the small tensors stay BF16. Perplexity: WikiText-2 test, "
+                    f"{r0['ppl']['windows']} windows of {r0['ppl']['window_len']} tokens. GEMV model: the sum of the measured "
+                    "streamed times (§12) of the kernels vLLM actually uses for each format; byte ceiling: 241 GB/s ÷ the "
+                    "weight bytes one token reads in that checkpoint.", "",
+                    md_table(t, fmtc), "",
+                    f"- INT4 with my v4 kernels in place of Marlin would give a GEMV model of {1e6 / tm4:.1f} tokens/s "
+                    "(Marlin and v4 run at the same speed, §7).",
+                    "- Greedy continuations (P = " + str(Ps[0]) + ", execution 1): " + "; ".join(agree) + ".",
+                    "- Reading: `GEMV share` is the GEMV model's time per token over the measured time per token; the rest "
+                    "is what the kernel benchmark leaves out (attention and DeltaNet state, norms, sampling over 248 320 "
+                    "logits, launch and scheduling overhead). Quantizing the layers leaves the BF16 LM head (1.27 GB, the "
+                    "largest single read) in place, which caps INT4's gain in this checkpoint.", ""]
+
     # ------------------------------------------------------------ figures
     def save(self, fig, name, caption):
         path = os.path.join(self.fig, name)
@@ -836,6 +1120,56 @@ class Analysis:
                   "token's 201 large GEMVs, streamed mode, every weight in the given format — INT4 includes the LM head) "
                   "against the byte-count ceiling at 241 GB/s.")
 
+    def fig_real_x(self):
+        p = os.path.join(self.R, "accuracy", "real_x", "per_token.csv.gz")
+        if not (hasattr(self, "rx") and os.path.exists(p)):
+            return
+        pt = pd.read_csv(p, comment="#")
+        mats = [m for m in ALL_MATS if m in set(pt.matrix)]
+        fig, axes = plt.subplots(1, 2, figsize=(7.4, 3.0))
+        for ax, f, thr in ((axes[0], "int8", 0.02), (axes[1], "int4", 0.15)):
+            data = [100 * pt[(pt.matrix == m) & (pt.pos > 0)][f"rel_{f}"].values for m in mats]
+            bp = ax.boxplot(data, positions=range(len(mats)), widths=0.55, whis=(5, 95), showfliers=False, patch_artist=True)
+            for b in bp["boxes"]:
+                b.set(facecolor=FCOLOR[f], alpha=0.35, edgecolor=FCOLOR[f])
+            for k in ("whiskers", "caps", "medians"):
+                for l in bp[k]:
+                    l.set(color=FCOLOR[f] if k != "medians" else INK, lw=1.0)
+            g = self.rx.set_index("matrix")
+            ax.scatter(range(len(mats)), [100 * g.loc[m, f"gauss_{f}"] for m in mats], marker="D", s=16, color=INK, zorder=4,
+                       label="fixed Gaussian x")
+            mx = [100 * pt[(pt.matrix == m) & (pt.pos == 0)][f"rel_{f}"].max() for m in mats]
+            ax.scatter(range(len(mats)), mx, marker="x", s=18, color=INK2, zorder=4, label="position 0 (worst window)")
+            ax.axhline(100 * thr, color=INK2, lw=0.9, ls=(0, (4, 3)))
+            ax.set_xticks(range(len(mats)), mats, rotation=45, fontsize=7)
+            ax.set_ylabel(("INT8" if f == "int8" else "INT4") + " relative error (%)")
+        axes[1].legend(fontsize=7, loc="lower right")
+        self.save(fig, "fig_real_x.png", "Relative output error with real activations (WikiText-2, every token position "
+                  "≥ 1; box = quartiles, whiskers = 5th–95th percentile) against the fixed Gaussian x (diamonds); crosses: "
+                  "the first token of a window (largest over the windows). Dashed: H3 thresholds.")
+
+    def fig_e2e(self):
+        if not hasattr(self, "e2e_tab"):
+            return
+        t, med = self.e2e_tab, self.e2e_med
+        Ps = sorted(med.P.unique())
+        fig, ax = plt.subplots(figsize=(5.2, 3.1))
+        x = np.arange(len(t))
+        w = 0.8 / (len(Ps) + 1)
+        for i, P in enumerate(Ps):
+            ax.bar(x + (i - len(Ps) / 2) * w, t[f"decode tok/s, P={P}"], w, color=[FCOLOR[f.lower()] for f in t.format],
+                   alpha=1.0 - 0.35 * i, zorder=2, label=f"vLLM decode, prompt {P} tokens")
+        ax.bar(x + (len(Ps) / 2) * w, t["GEMV model tok/s"], w, color="none", edgecolor=INK2, hatch="///", lw=0.8, zorder=2,
+               label="GEMV time alone (measured kernels)")
+        ax.scatter(x + (len(Ps) / 2) * w, t["byte ceiling tok/s"], marker="_", s=300, color=INK, lw=1.6, zorder=3,
+                   label="byte-count ceiling at 241 GB/s")
+        ax.set_xticks(x, t.format)
+        ax.set_ylabel("tokens/s (batch 1)")
+        ax.legend(fontsize=7, loc="upper left")
+        self.save(fig, "fig_e2e.png", "End-to-end decode speed of Qwen3.5-4B in vLLM for the BF16 model and the INT8/INT4 "
+                  "checkpoints made with this project's quantizer (LM head BF16), against the speed implied by the "
+                  "measured GEMV kernel times alone and the byte-count ceiling.")
+
     # ------------------------------------------------------------ run
     def run(self):
         self.md = ["# Analysis of the final runs", "",
@@ -857,8 +1191,13 @@ class Analysis:
         self.tuning()
         self.rotation()
         self.nsys()
+        self.many_x_all_layers()
+        self.ncu()
+        self.real_x()
+        self.e2e()
         for f in (self.fig_ladder, self.fig_speedup_bytes, self.fig_speed_accuracy, self.fig_ablation,
-                  self.fig_rotation, self.fig_accuracy_layers, self.fig_timing_modes, self.fig_per_token):
+                  self.fig_rotation, self.fig_accuracy_layers, self.fig_timing_modes, self.fig_per_token,
+                  self.fig_real_x, self.fig_e2e):
             f()
         summary = ["## Verdicts", ""] + [f"- **{h}: {v}**" for h, v in self.verdict.items()] + [""]
         self.md[4:4] = summary
