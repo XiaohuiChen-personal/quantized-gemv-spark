@@ -14,8 +14,14 @@ number of steps. Also recorded: the greedy continuation (to compare formats) and
 perplexity of the WikiText-2 test text, from prompt log-probabilities over N windows of
 W tokens (the first token of each window is not scored).
 
+With --profile-decode N (run under `nsys profile --capture-range=cudaProfilerApi` with
+VLLM_ENABLE_V1_MULTIPROCESSING=0, so the engine runs in this process): warm up, then one
+request of 1 + N tokens between cudaProfilerStart/Stop, for a GPU kernel breakdown of the
+decode steps (the one prefill of the first prompt length is inside the window too).
+
 Usage: python3 scripts/e2e_decode.py --model DIR --label bf16|int8|int4 --out results/e2e/x.json
            [--contexts 128,2048] [--decode 256] [--reps 10] [--ppl-windows 8] [--ppl-len 1024]
+           [--profile-decode N]
 """
 import argparse
 import json
@@ -41,6 +47,7 @@ def main():
     ap.add_argument("--ppl-windows", type=int, default=8)
     ap.add_argument("--ppl-len", type=int, default=1024)
     ap.add_argument("--gpu-mem", type=float, default=0.30)
+    ap.add_argument("--profile-decode", type=int, default=0)
     a = ap.parse_args()
 
     import torch
@@ -68,6 +75,21 @@ def main():
         if len(toks) != n:
             raise SystemExit(f"asked for {n} tokens, got {len(toks)}")
         return e - s, toks
+
+    if a.profile_decode:
+        P = min(int(c) for c in a.contexts.split(","))
+        prompt = TokensPrompt(prompt_token_ids=ids[:P])
+        for _ in range(max(a.warmup, 1)):
+            gen(prompt, 1 + a.profile_decode)
+        first, _ = gen(prompt, 1)
+        torch.cuda.profiler.start()
+        t, _ = gen(prompt, 1 + a.profile_decode)
+        torch.cuda.profiler.stop()
+        json.dump({"label": a.label, "model": a.model, "git": text_data.git_desc(), "vllm": vllm.__version__,
+                   "prompt_tokens": P, "decode_tokens": a.profile_decode, "wall_s": t, "first_token_s": first,
+                   "multiprocessing": os.environ.get("VLLM_ENABLE_V1_MULTIPROCESSING")}, open(a.out, "w"), indent=1)
+        print(f"[{a.label}] profiled one request of 1 + {a.profile_decode} tokens in {t:.3f} s", flush=True)
+        return
 
     result = {"label": a.label, "model": a.model, "quantization": quant, "git": text_data.git_desc(),
               "vllm": vllm.__version__, "torch": torch.__version__, "device": torch.cuda.get_device_name(0),

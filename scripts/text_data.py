@@ -1,10 +1,11 @@
 """The text the model-level experiments run on: the WikiText-2 (raw) test split, pinned
 to the dataset revision recorded in data/extras.json by scripts/fetch_extras.py.
 
-The split is joined with blank lines, as in the Hugging Face perplexity guide, and
-tokenized once without special tokens; experiments take consecutive windows from the
-start of that token stream, so every run (activation capture, decode prompt, perplexity)
-uses the same tokens.
+scripts/fetch_extras.py joins the split with blank lines, as in the Hugging Face
+perplexity guide, into data/wikitext2_test.txt (SHA-256 checked here). It is tokenized
+once without special tokens, and experiments take consecutive windows from the start of
+that token stream, so every run (activation capture, decode prompt, perplexity) uses the
+same tokens.
 """
 import hashlib
 import json
@@ -12,16 +13,12 @@ import os
 
 
 def wikitext_ids(tokenizer, extras="data/extras.json"):
-    import pyarrow.parquet as pq
-    from huggingface_hub import hf_hub_download
-
     e = json.load(open(extras))["dataset"]
-    p = hf_hub_download(e["repo"], e["file"], repo_type="dataset", revision=e["revision"], local_files_only=True)
-    h = hashlib.sha256(open(p, "rb").read()).hexdigest()
-    if h != e["sha256"]:
-        raise SystemExit(f"{p}: sha256 {h} != {e['sha256']} recorded in {extras}")
-    text = "\n\n".join(pq.read_table(p).column("text").to_pylist())
-    return tokenizer(text, add_special_tokens=False)["input_ids"]
+    raw = open(e["text_file"], "rb").read()
+    h = hashlib.sha256(raw).hexdigest()
+    if h != e["text_sha256"]:
+        raise SystemExit(f"{e['text_file']}: sha256 {h} != {e['text_sha256']} recorded in {extras}")
+    return tokenizer(raw.decode("utf-8"), add_special_tokens=False)["input_ids"]
 
 
 def model_snapshot():

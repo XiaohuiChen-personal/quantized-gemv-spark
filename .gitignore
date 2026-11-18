@@ -15,6 +15,7 @@ data/*.bin
 # Generated inputs of the model-level experiments (real activations, bench data
 # directories for them, the quantized checkpoints): large, rebuilt by run_stage.sh.
 data/*/
+data/wikitext2_test.txt
 
 # Python
 __pycache__/

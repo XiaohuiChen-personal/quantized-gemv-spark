@@ -54,17 +54,19 @@ gpu_log_start() {
 }
 gpu_log_stop() { [ -n "$GPULOG" ] && kill "$GPULOG" 2>/dev/null || true; GPULOG=; }
 trap gpu_log_stop EXIT
-# python3 in the vLLM image (vLLM 0.16, transformers 5.3), as this user, with the Hugging
-# Face cache at /hf and the repository at /work. Offline: every input is fetched before
+# python3 in the vLLM 0.28 image (transformers 5.15, PyTorch 2.13, CUDA 13.0), as this user,
+# with the Hugging Face cache at /hf and the repository at /work. (The vllm-node-qwen35
+# image of the Marlin stage cannot load the full Qwen3.5 model: its vLLM 0.16 pre-release
+# fails parsing the config with its own transformers.) Offline: every input is fetched before
 # (scripts/fetch_extras.py). git cannot describe the mounted repository inside the
 # container (another uid), so the description is passed in GIT_DESC.
-VLLM_IMAGE=vllm-node-qwen35:latest
+VLLM_IMAGE=vllm/vllm-openai:v0.28.0-aarch64
 docker_py() {
     mkdir -p ~/tmp/en605617/vllm-cache
     docker run --rm --gpus all --ipc=host --user "$(id -u):$(id -g)" -e HOME=/tmp -e HF_HOME=/hf \
         -e HF_HUB_OFFLINE=1 -e VLLM_CACHE_ROOT=/vllm-cache -e GIT_DESC="$(git describe --always --dirty)" \
         -v "$HOME/.cache/huggingface:/hf" -v ~/tmp/en605617/vllm-cache:/vllm-cache -v "$PWD":/work -w /work \
-        "$VLLM_IMAGE" python3 "$@"
+        --entrypoint python3 "$VLLM_IMAGE" "$@"
 }
 
 make -s all
@@ -188,9 +190,10 @@ realx)
     require_quiet
     out=results/accuracy/real_x
     mkdir -p "$out/gpu"
-    [ -f data/extras.json ] || python3 scripts/fetch_extras.py
+    [ -f data/wikitext2_test.txt ] || python3 scripts/fetch_extras.py
     env_report > "$out/env.txt"
     docker_py scripts/capture_activations.py --out data/real_x > "$out/capture.log" 2>&1
+    cp data/real_x/manifest.json "$out/capture_manifest.json"
     rm -rf data/real_x_gpu
     python3 scripts/real_x_accuracy.py --gpu-dirs data/real_x_gpu --out "$out" > "$out/accuracy.log" 2>&1
     # The GPU kernels on two real x per benchmarked matrix: correctness checks and error.
@@ -206,8 +209,8 @@ realx)
 e2e)
     require_quiet
     out=results/e2e
-    mkdir -p "$out" data/ckpt
-    [ -f data/extras.json ] || python3 scripts/fetch_extras.py
+    mkdir -p "$out" data/ckpt ~/tmp/en605617/e2e
+    [ -f data/wikitext2_test.txt ] || python3 scripts/fetch_extras.py
     env_report > "$out/env.txt"
     for b in 4 8; do
         if [ ! -f data/ckpt/int$b/quantization_info.json ]; then
@@ -234,6 +237,29 @@ e2e)
         done
     done
     gpu_log_stop
+    # GPU kernel breakdown of the decode steps: one request of 1 + 256 tokens per format
+    # under Nsight Systems (the host's installation, mounted into the container; CUDA-graph
+    # kernels traced one by one), vLLM's engine in-process so the profiler API covers it.
+    NSYS_DIR=/opt/nvidia/nsight-systems
+    nsys_bin=$(readlink -f "$(command -v nsys)")
+    for label in bf16 int8 int4; do
+        case $label in
+            bf16) model=$bf16 ;;
+            *) model=/work/data/ckpt/$label ;;
+        esac
+        docker run --rm --gpus all --ipc=host --user "$(id -u):$(id -g)" -e HOME=/tmp -e HF_HOME=/hf \
+            -e HF_HUB_OFFLINE=1 -e VLLM_CACHE_ROOT=/vllm-cache -e GIT_DESC="$(git describe --always --dirty)" \
+            -e VLLM_ENABLE_V1_MULTIPROCESSING=0 -v "$HOME/.cache/huggingface:/hf" \
+            -v ~/tmp/en605617/vllm-cache:/vllm-cache -v "$NSYS_DIR:$NSYS_DIR:ro" -v ~/tmp/en605617/e2e:/prof \
+            -v "$PWD":/work -w /work --entrypoint "$nsys_bin" "$VLLM_IMAGE" \
+            profile --trace=cuda,nvtx --cuda-graph-trace=node --capture-range=cudaProfilerApi \
+            --capture-range-end=stop --sample=none --cpuctxsw=none --force-overwrite=true -o "/prof/decode_$label" \
+            python3 scripts/e2e_decode.py --model "$model" --label "$label" --contexts 128 --warmup 2 \
+            --profile-decode 256 --out "$out/profile_$label.json" > "$out/profile_$label.log" 2>&1
+        nsys stats --force-export=true --report cuda_gpu_kern_sum --format csv \
+            -o "$out/profile_$label" ~/tmp/en605617/e2e/decode_$label.nsys-rep > /dev/null
+        grep -E "profiled" "$out/profile_$label.log"
+    done
     env_report >> "$out/env.txt"
     ;;
 *)

@@ -257,12 +257,24 @@ def collect_gpu(a):
                              "recheck_pass": r["recheck_pass"], "bitwise_same": r["bitwise_same"],
                              "check_worst_ratio": float(r["check_worst_ratio"]), "gpu_rel_err": float(r["acc_rel_vs_bf16"]),
                              "numpy_rel_err": numpy_err})
+    # The GPU output is rounded to BF16, which adds its own error (v2's error against the double
+    # reference on the same x measures it); expected GPU error = sqrt(numpy^2 + rounding^2).
+    rnd = {(r["matrix"], r["token_choice"]): r["gpu_rel_err"] for r in rows if r["kernel"] == "v2"}
+    for r in rows:
+        e = rnd[(r["matrix"], r["token_choice"])]
+        r["bf16_rounding_err"] = e
+        r["expected_gpu_err"] = (r["numpy_rel_err"] ** 2 + e ** 2) ** 0.5 if r["fmt"] != "bf16" else e
     write_csv(os.path.join(a.collect_gpu, "gpu_check.csv"), rows,
-              "bench --mode quick on real x (data dirs from real_x_accuracy.py --gpu-dirs); numpy_rel_err from the CPU")
-    q = [r for r in rows if r["fmt"] != "bf16"]
-    dev = max(abs(r["gpu_rel_err"] / r["numpy_rel_err"] - 1) for r in q)
+              "bench --mode quick on real x (data dirs from real_x_accuracy.py --gpu-dirs); numpy_rel_err from the CPU; "
+              "expected_gpu_err = sqrt(numpy_rel_err^2 + bf16_rounding_err^2), the rounding error = v2's on the same x")
     fails = [r for r in rows if "FAIL" in (r["check_pass"], r["check_rad_pass"], r["recheck_pass"]) or r["bitwise_same"] != "1"]
-    print(f"{len(rows)} GPU rows; checks failed: {len(fails)}; GPU vs NumPy relative error of v3/v4: max deviation {dev:.2%}")
+    msg = []
+    for f in ("int8", "int4"):
+        q = [r for r in rows if r["fmt"] == f]
+        msg.append(f"{f}: GPU / NumPy error {min(r['gpu_rel_err'] / r['numpy_rel_err'] for r in q):.3f}–"
+                   f"{max(r['gpu_rel_err'] / r['numpy_rel_err'] for r in q):.3f}, GPU / expected "
+                   f"{min(r['gpu_rel_err'] / r['expected_gpu_err'] for r in q):.3f}–{max(r['gpu_rel_err'] / r['expected_gpu_err'] for r in q):.3f}")
+    print(f"{len(rows)} GPU rows; checks failed: {len(fails)}; " + "; ".join(msg))
 
 
 def main():
