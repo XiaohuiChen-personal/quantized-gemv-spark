@@ -420,6 +420,18 @@ Kernels cuBLAS chose (`results/nsys/cublas_kernels.md`): every `cublasGemmEx` ca
 - Greedy continuations (P = 128, execution 1): INT8: first 257 of 257 greedy tokens identical to BF16; INT4: first 7 of 257 greedy tokens identical to BF16.
 - Reading: `GEMV model / measured time` compares the kernel-benchmark prediction with the engine; what the benchmark leaves out (attention and DeltaNet state, norms, sampling over 248 320 logits, launch and scheduling overhead) is measured directly in the kernel breakdown below. Quantizing the layers leaves the BF16 LM head (1.27 GB, the largest single read) in place, which caps INT4's gain in this checkpoint.
 
+GPU kernel breakdown of one decode request (P = 128, 1 + 256 tokens) per format, under Nsight Systems (`results/e2e/profile_*`; CUDA-graph kernels traced individually; vLLM engine in-process). Kernels are grouped by name: Marlin = the quantized layers; cuBLAS = every BF16 layer in the BF16 model and only the LM head in the INT8/INT4 checkpoints; `other` = norms, activations, rotary, sampling, copies (mostly torch.compile Triton fusions). Per generated token; the one prefill is inside the window (last column).
+
+| format | Marlin GEMV ms/token | cuBLAS GEMV/GEMM ms/token | DeltaNet ms/token | attention ms/token | other ms/token | GPU ms/token | wall ms/token (profiled) | GPU busy | large-GEMV share of GPU time | prefill + first token share |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| BF16 | 0.000 | 46.999 | 0.462 | 0.018 | 0.360 | 47.839 | 48.209 | 99% | 98.2% | 0.5% |
+| INT8 | 15.901 | 7.600 | 0.373 | 0.015 | 0.267 | 24.156 | 24.504 | 99% | 97.3% | 0.8% |
+| INT4 | 8.413 | 7.590 | 0.373 | 0.015 | 0.265 | 16.656 | 17.021 | 98% | 96.1% | 0.8% |
+
+- Measured GEMV time per token against the microbenchmark's streamed times (§12): BF16 layers + LM head 47.00 ms measured vs 46.87 ms predicted (cuBLAS); INT4 layers 8.41 ms (vLLM 0.28 Marlin) vs 8.58 ms (vLLM 0.16 Marlin, §7); INT8 layers 15.90 ms (Marlin INT8) vs 15.14 ms for my v3; LM head (cuBLAS BF16) 7.59 ms vs 7.35 ms. The kernel benchmark predicts the engine's GEMV time to within 5%; the largest gap is INT8, where the prediction uses my v3 and vLLM runs Marlin.
+- Everything that is not a large GEMV — the DeltaNet recurrence, attention, norms, activations, sampling — costs 0.65–0.84 ms per token at this context, and the GPU is busy for 98–99% of the wall time: batch-1 decode on this machine is GEMV time, which is the project's premise, now measured.
+- The BF16 LM head is 46% of the INT4 checkpoint's GPU time per token. *Projection, not measured:* with the LM head also in INT4 at v4's speed the GPU time would be about 10.4 ms per token (≈ 96 tokens/s), at the INT4 LM head's accuracy cost (§6).
+
 ## Figures
 
 - `figures/fig_ladder.png`: Achieved bandwidth (isolated median over three executions, GB/s on the bytes each format stores) of the kernel ladder and cuBLAS on one matrix of each shape. Black ticks: a plain read of the same bytes in the same format and rotation (the size-matched reference); dashed: rated 273 GB/s and the proposal's 241 GB/s.
@@ -431,4 +443,5 @@ Kernels cuBLAS chose (`results/nsys/cublas_kernels.md`): every `cublasGemmEx` ca
 - `figures/fig_timing_modes.png`: Back-to-back (CUDA-graph) time per launch relative to the isolated time, for every ladder kernel and matrix (colour and shape = weight format): the shorter the kernel, the more the per-launch event overhead and start-up/tail cost matter.
 - `figures/fig_per_token.png`: Decode speed implied by the measured GEMV times alone (sum over one token's 201 large GEMVs, streamed mode, every weight in the given format — INT4 includes the LM head) against the byte-count ceiling at 241 GB/s.
 - `figures/fig_real_x.png`: Relative output error with real activations (WikiText-2, every token position ≥ 1; box = quartiles, whiskers = 5th–95th percentile) against the fixed Gaussian x (diamonds); crosses: the first token of a window (largest over the windows). Dashed: H3 thresholds.
+- `figures/fig_real_x_layers.png`: INT4 relative error of all 201 large matrices with real activations (pooled over 512 WikiText-2 tokens) against the fixed Gaussian x; marker = the input the matrix multiplies. The attention output projections (black triangles) are the only group that real inputs push above the Gaussian error and, for 7 matrices, above 15%.
 - `figures/fig_e2e.png`: End-to-end decode speed of Qwen3.5-4B in vLLM for the BF16 model and the INT8/INT4 checkpoints made with this project's quantizer (LM head BF16), against the speed implied by the measured GEMV kernel times alone and the byte-count ceiling.

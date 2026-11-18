@@ -1,0 +1,11 @@
+{
+ "label": "bf16",
+ "model": "/hf/hub/models--Qwen--Qwen3.5-4B/snapshots/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+ "git": "071fefa",
+ "vllm": "0.28.0",
+ "prompt_tokens": 128,
+ "decode_tokens": 256,
+ "wall_s": 12.341568501899019,
+ "first_token_s": 0.0564299039542675,
+ "multiprocessing": "0"
+}

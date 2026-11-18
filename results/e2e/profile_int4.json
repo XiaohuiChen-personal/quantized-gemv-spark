@@ -1,0 +1,11 @@
+{
+ "label": "int4",
+ "model": "/work/data/ckpt/int4",
+ "git": "071fefa",
+ "vllm": "0.28.0",
+ "prompt_tokens": 128,
+ "decode_tokens": 256,
+ "wall_s": 4.357323476113379,
+ "first_token_s": 0.032836038852110505,
+ "multiprocessing": "0"
+}

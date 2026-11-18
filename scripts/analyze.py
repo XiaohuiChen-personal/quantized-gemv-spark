@@ -1015,6 +1015,31 @@ class Analysis:
                     md_table(t, {c: "{:.3f}" for c in t.columns if "ms/token" in c} |
                              {"GPU busy": "{:.0%}", "large-GEMV share of GPU time": "{:.1%}", "prefill + first token share": "{:.1%}"}),
                     ""]
+        # Measured components against the microbenchmark (streamed, §12): layers only, and the LM head.
+        inv_lm = statistics.median(self.t(m, "cublas", "stream") for m in ["lmhead"]) / 1e3  # ms per LM-head GEMV
+        lay = {f: (self.gemv_model(pick)[0] / 1e3 - inv_lm) for f, pick in (
+            ("bf16", lambda is_lm: ("cublas", "bf16")), ("int8", lambda is_lm: ("cublas", "bf16") if is_lm else ("v3", "int8")),
+            ("int4", lambda is_lm: ("cublas", "bf16") if is_lm else "marlin"))}
+        k = t.set_index("format")
+        q4 = (k.loc["INT4", "GPU ms/token"] - k.loc["INT4", "cuBLAS GEMV/GEMM ms/token"]
+              + self.t("lmhead", "v4", "stream") / 1e3) if "INT4" in k.index else float("nan")
+        self.md += ["- Measured GEMV time per token against the microbenchmark's streamed times (§12): BF16 layers + LM head "
+                    f"{k.loc['BF16', 'cuBLAS GEMV/GEMM ms/token']:.2f} ms measured vs {lay['bf16'] + inv_lm:.2f} ms predicted "
+                    f"(cuBLAS); INT4 layers {k.loc['INT4', 'Marlin GEMV ms/token']:.2f} ms (vLLM 0.28 Marlin) vs "
+                    f"{lay['int4']:.2f} ms (vLLM 0.16 Marlin, §7); INT8 layers {k.loc['INT8', 'Marlin GEMV ms/token']:.2f} ms "
+                    f"(Marlin INT8) vs {lay['int8']:.2f} ms for my v3; LM head (cuBLAS BF16) "
+                    f"{k.loc['INT4', 'cuBLAS GEMV/GEMM ms/token']:.2f} ms vs {inv_lm:.2f} ms. The kernel benchmark predicts the "
+                    "engine's GEMV time to within 5%; the largest gap is INT8, where the prediction uses my v3 and vLLM runs "
+                    "Marlin.",
+                    f"- Everything that is not a large GEMV — the DeltaNet recurrence, attention, norms, activations, sampling — "
+                    f"costs {k['GPU ms/token'].sub(k['Marlin GEMV ms/token'] + k['cuBLAS GEMV/GEMM ms/token']).min():.2f}–"
+                    f"{k['GPU ms/token'].sub(k['Marlin GEMV ms/token'] + k['cuBLAS GEMV/GEMM ms/token']).max():.2f} ms per token "
+                    "at this context, and the GPU is busy for 98–99% of the wall time: batch-1 decode on this machine is "
+                    "GEMV time, which is the project's premise, now measured.",
+                    f"- The BF16 LM head is {k.loc['INT4', 'cuBLAS GEMV/GEMM ms/token'] / k.loc['INT4', 'GPU ms/token']:.0%} of the "
+                    f"INT4 checkpoint's GPU time per token. *Projection, not measured:* with the LM head also in INT4 at v4's "
+                    f"speed the GPU time would be about {q4:.1f} ms per token (≈ {1e3 / q4:.0f} tokens/s), at the INT4 LM head's "
+                    "accuracy cost (§6).", ""]
 
     # ------------------------------------------------------------ figures
     def save(self, fig, name, caption):
@@ -1231,10 +1256,39 @@ class Analysis:
             ax.axhline(100 * thr, color=INK2, lw=0.9, ls=(0, (4, 3)))
             ax.set_xticks(range(len(mats)), mats, rotation=45, fontsize=7)
             ax.set_ylabel(("INT8" if f == "int8" else "INT4") + " relative error (%)")
-        axes[1].legend(fontsize=7, loc="lower right")
+        axes[1].legend(fontsize=7, loc="upper left")
         self.save(fig, "fig_real_x.png", "Relative output error with real activations (WikiText-2, every token position "
                   "≥ 1; box = quartiles, whiskers = 5th–95th percentile) against the fixed Gaussian x (diamonds); crosses: "
                   "the first token of a window (largest over the windows). Dashed: H3 thresholds.")
+
+    def fig_real_x_layers(self):
+        if not hasattr(self, "rx_all"):
+            return
+        a = self.rx_all
+        groups = [("MLP inputs (gate/up)", "mlp_in", "o"), ("down_proj input", "down_in", "s"),
+                  ("attention / DeltaNet inputs (q/k/v, qkv/z)", "attn_in", "D"),
+                  ("attention outputs (o_proj, out_proj)", "attn_out_in", "^"), ("LM head", "lm_in", "*")]
+        fig, ax = plt.subplots(figsize=(5.4, 3.6))
+        for lab, site, mk in groups:
+            d = a[a.site == site]
+            ax.scatter(100 * d.gauss_int4, 100 * d.int4_pooled, s=22 if mk != "*" else 70, marker=mk,
+                       facecolor="none" if mk != "*" else FCOLOR["int4"], edgecolor=FCOLOR["int4"] if site != "attn_out_in" else INK,
+                       linewidth=0.9, label=lab, zorder=3)
+        x0, x1 = 100 * a.gauss_int4.min() - 0.2, 100 * a.gauss_int4.max() + 0.2
+        y0, y1 = min(x0, 100 * a.int4_pooled.min()) - 0.5, 100 * a.int4_pooled.max() + 0.8
+        ax.plot([x0, x1], [x0, x1], color=INK2, lw=0.8, ls=(0, (2, 2)))
+        ax.text(x1 - 0.05, x1 - 1.5, "real = Gaussian", fontsize=7, color=INK2, ha="right")
+        ax.axhline(15, color=INK2, lw=0.9, ls=(0, (4, 3)))
+        ax.text(x1 - 0.05, 15.2, "H3 limit 15%", fontsize=7, color=INK2, ha="right")
+        ax.set_xlim(x0, x1)
+        ax.set_ylim(y0, y1)
+        ax.set_xlabel("INT4 error, fixed Gaussian x (%)")
+        ax.set_ylabel("INT4 error, real activations (%, pooled)")
+        ax.legend(fontsize=6.5, loc="upper left")
+        self.save(fig, "fig_real_x_layers.png", "INT4 relative error of all 201 large matrices with real activations (pooled "
+                  "over 512 WikiText-2 tokens) against the fixed Gaussian x; marker = the input the matrix multiplies. The "
+                  "attention output projections (black triangles) are the only group that real inputs push above the "
+                  "Gaussian error and, for 7 matrices, above 15%.")
 
     def fig_e2e(self):
         if not hasattr(self, "e2e_tab"):
@@ -1244,16 +1298,19 @@ class Analysis:
         fig, ax = plt.subplots(figsize=(5.2, 3.1))
         x = np.arange(len(t))
         w = 0.8 / (len(Ps) + 1)
+        handles = []
         for i, P in enumerate(Ps):
             ax.bar(x + (i - len(Ps) / 2) * w, t[f"decode tok/s, P={P}"], w, color=[FCOLOR[f.lower()] for f in t.format],
-                   alpha=1.0 - 0.35 * i, zorder=2, label=f"vLLM decode, prompt {P} tokens")
+                   alpha=1.0 - 0.35 * i, zorder=2)
+            handles.append(matplotlib.patches.Patch(facecolor=INK2, alpha=1.0 - 0.35 * i, label=f"vLLM decode, prompt {P} tokens"))
         ax.bar(x + (len(Ps) / 2) * w, t["GEMV model tok/s"], w, color="none", edgecolor=INK2, hatch="///", lw=0.8, zorder=2,
                label="GEMV time alone (measured kernels)")
         ax.scatter(x + (len(Ps) / 2) * w, t["byte ceiling tok/s"], marker="_", s=300, color=INK, lw=1.6, zorder=3,
                    label="byte-count ceiling at 241 GB/s")
         ax.set_xticks(x, t.format)
         ax.set_ylabel("tokens/s (batch 1)")
-        ax.legend(fontsize=7, loc="upper left")
+        h2, l2 = ax.get_legend_handles_labels()
+        ax.legend(handles + h2, [h.get_label() for h in handles] + l2, fontsize=7, loc="upper left")
         self.save(fig, "fig_e2e.png", "End-to-end decode speed of Qwen3.5-4B in vLLM for the BF16 model and the INT8/INT4 "
                   "checkpoints made with this project's quantizer (LM head BF16), against the speed implied by the "
                   "measured GEMV kernel times alone and the byte-count ceiling.")
@@ -1285,7 +1342,7 @@ class Analysis:
         self.e2e()
         for f in (self.fig_ladder, self.fig_speedup_bytes, self.fig_speed_accuracy, self.fig_ablation,
                   self.fig_rotation, self.fig_accuracy_layers, self.fig_timing_modes, self.fig_per_token,
-                  self.fig_real_x, self.fig_e2e):
+                  self.fig_real_x, self.fig_real_x_layers, self.fig_e2e):
             f()
         summary = ["## Verdicts", ""] + [f"- **{h}: {v}**" for h, v in self.verdict.items()] + [""]
         self.md[4:4] = summary

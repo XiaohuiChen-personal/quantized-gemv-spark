@@ -19,6 +19,13 @@ are confirmed and each held in all three executions; the stretch H4 is confirmed
 my INT4 kernel runs at 0.95–1.00× the time of vLLM's Marlin on the matrices of 21 MB and
 up [ANALYSIS.md §4–7].
 
+After the freeze (§6): Nsight Compute confirms that every kernel reads its stored bytes once
+(0.999–1.016×) and that INT4 decode costs instructions but no time; real activations lower the
+error on most matrices but raise INT4 above 15% on the attention output projections; and in vLLM,
+INT8/INT4 checkpoints made with this quantizer decode at 41.5 / 59.9 tokens/s against 20.8 for
+BF16, with the large GEMVs taking 96–98% of the GPU time — the per-token GEMV model built from the
+kernel benchmark accounts for 93–98% of the measured decode time.
+
 ## 2. Findings, in the order the report should tell them
 
 1. **Coalescing is almost everything on this GPU.** v0 (thread per row) reaches 19–113
@@ -144,11 +151,15 @@ up [ANALYSIS.md §4–7].
   noisy sample. Over 64 fresh Gaussian x its INT4 error averages 12.55% (5th–95th
   percentile 10.06–13.78%) and INT8 1.018%, matching the predictions; the fixed x sits near
   the top [accuracy/x_samples.csv]. The largest 95th percentile over the 11 benchmarked
-  matrices is 13.78% (INT4). Not sampled: the all-layer worst case (layer-31 `o_proj`,
-  14.17% with the fixed x, predicted 14.31%), whose own spread over x could reach 15%.
-- Random Gaussian x measures weight-rounding error, not model quality; real activations
-  have outliers that can make INT4 round-to-nearest much worse (the reason GPTQ/AWQ exist).
-- One GPU, one model, batch 1, one decode step; no end-to-end tokens/s measured.
+  matrices is 13.78% (INT4). The all-layer worst case (layer-31 `o_proj`, 14.17% with the
+  fixed x) was sampled after the freeze: 95th percentile 14.84%, a few single x above 15% (§6.1).
+- Random Gaussian x measures weight-rounding error, not model quality. With real activations
+  (§6.3) most matrices do better, but the attention output projections do worse, up to 19.95%
+  pooled INT4; the whole INT4 model loses 14.4% in perplexity (§6.4). Both use one text
+  (WikiText-2 test) and round-to-nearest without calibration.
+- One GPU, one model, batch 1. The end-to-end decode (§6.4) uses one engine (vLLM 0.28, a
+  different image and PyTorch than the Marlin comparison) and one prompt text; its INT4/INT8
+  checkpoints keep the LM head in BF16.
 - Marlin ran in another process and session, in a container with a CUDA 13.1
   forward-compatibility runtime, timed with PyTorch events, on weights quantized by vLLM's
   own quantizer (not mine). The Nsight pass is a single profiled execution.
@@ -163,7 +174,9 @@ up [ANALYSIS.md §4–7].
 - Rotation footprint 32 × L2 instead of "> 4 × L2" (evidence above).
 - Added: `k_proj`/`v_proj` shapes (per-token model only), streamed timing, size-matched
   read references, cuBLASLt, the ablation, the load-only diagnostic, the all-layer sweep,
-  the many-x check, the Nsight cross-check.
+  the many-x check, the Nsight cross-check; after the freeze, the proposal's stretch goals
+  (Nsight Compute, real activations, end-to-end vLLM decode) and the all-layer many-x check
+  (§6).
 - The final v2 is the tuned member of the v2 family, which turned out not to use shared
   memory or a persistent grid.
 - H4 is judged on streamed times (both kernels without host cost) on the H2 matrices; every
@@ -171,7 +184,77 @@ up [ANALYSIS.md §4–7].
   (192.8); no value falls between.
 - Hypotheses and thresholds unchanged; verdicts on the median of three executions.
 
-## 6. Suggested figures and tables for the report
+## 6. After the freeze: the four open items (2026-11-18)
+
+The core results above are frozen at `c1d91fc`. The project plan's four open items were run
+afterwards, each in its own result directory, with new sections 16–19 in `ANALYSIS.md`; none
+changes a pre-registered verdict. An independent adversarial review of the new code found no
+wrong committed number; its corrections to wording and evidence are applied.
+
+1. **H3 for typical random inputs, all layers** [accuracy/x_samples_all_layers.csv, §16].
+   256 fresh Gaussian x per matrix for all 201 large matrices. The mean error over x equals
+   √(Σδ²/Σw²) on every matrix (ratio 0.996–1.009). Every INT4 95th percentile is below 15%
+   (largest 14.84%, layer-31 `o_proj`) and no INT8 value of any x reaches 2% (largest 1.76%).
+   But 15 of 51 456 single draws (0.03%) exceed 15% INT4 (largest 15.64%), on four
+   full-attention matrices of layers 27 and 31. *Reading:* "H3 across all 32 layers" holds
+   for the fixed x and for the 95th percentile, not for every individual x.
+2. **Nsight Compute** [ncu/summary.md, §17], run with sudo (GPU counters are admin-only on this
+   machine); the GB10 has no `dram__` counters, so DRAM reads = L2 sectors filled from system
+   memory. With cold caches every GEMV kernel reads 0.999–1.016× the bytes it must read, so
+   bytes are not the difference between kernels. v4 executes 3.5–4.2× the instructions of its
+   load-only variant per byte in 0.96–0.99× its time, with ≤ 20% of the SM busy and
+   long-scoreboard stalls dominant: the counter-based confirmation that INT4 decode is free and
+   v4 is memory-bound. cuBLAS's `gemvx` kernels use 164 registers per thread and reach ~24%
+   achieved occupancy (v2: 40 registers, 86–92%); the slow default and the fast cuBLASLt
+   variant share that occupancy, so the remaining cause lies in their template parameters (§15's
+   question narrowed, not closed). v0 is starved of threads on the ≤ 9216-row matrices (16%
+   occupancy, L2 traffic = DRAM traffic) but on the LM head runs at 90% occupancy and still
+   reaches only 115 GB/s, with 2.18× L2 traffic and `lg_throttle` stalls: there the uncoalesced
+   pattern does cost traffic. Profiled durations are 1.01–1.79× the Nsight Systems ones (replay
+   with cache flushes), so they are not used as timings.
+3. **Real activations** [accuracy/real_x/, §18, `figures/fig_real_x.png`]. The BF16 model ran
+   over 4 × 512 WikiText-2 test tokens and the input of every large layer was recorded at every
+   position. On the nine hypothesis matrices real inputs give *less* error than the Gaussian x:
+   pooled INT8 0.30–1.11%, INT4 4.3–11.2% (Gaussian: 0.88–1.11%, 11.9–13.6%); 6 of 18 432
+   token-matrix pairs exceed 15% INT4, none exceeds 2% INT8. The exception is the attention
+   output projections across all layers: full-attention `o_proj` pools to 9.3–20.0% INT4 (median
+   16.4% over the 8 layers; the benchmarked layer-3 one is the mildest), DeltaNet `out_proj` to
+   9.1–15.2% (median 13.5%); 7 matrices pool above 15% (worst layer-11 `o_proj`, 19.95%), and
+   93% of the 5 025 token-matrix pairs above 15% (of 102 912) are on these inputs; INT8 stays at
+   or below 1.74% pooled, with 70 single pairs above 2%. An exact decomposition explains it:
+   pooled error = predicted × √(h/g), where g (signal gain) and h (noise gain) compare ‖W x‖² and
+   ‖ΔW x‖² with an isotropic x of the same norm. Attention-output inputs have g ≈ 0.8 and h ≈ 1:
+   they lie in directions W barely amplifies, so the output signal shrinks while the rounding noise
+   does not; input-side projections have g ≈ 2.9 (median), so their error drops. Outlier channels
+   are not the cause (an energy-weighted prediction does not reproduce the error). The GPU kernels
+   pass every correctness check on real x, and their errors equal the NumPy errors plus the BF16
+   output rounding (GPU / expected 0.987–1.040 INT8, 0.998–1.001 INT4). *Reading for the report:*
+   round-to-nearest INT4 with group 128 is within H3's 15% on most of the model but not on the
+   attention output projections with the inputs the model actually produces — exactly where
+   calibrated methods (GPTQ, AWQ) or keeping those layers in INT8 would help.
+
+4. **End-to-end decode in vLLM** [e2e/, §19, `figures/fig_e2e.png`]. vLLM 0.28 (the
+   `vllm-node-qwen35` image of the Marlin comparison cannot load the full model), batch 1, greedy,
+   CUDA graphs, three executions. The INT8/INT4 checkpoints are written from *this project's*
+   quantizer in GPTQ format and served by vLLM's Marlin kernels; all 200 large layer matrices are
+   quantized, the tied embedding/LM head stays BF16; the benchmarked matrices' codes and scales are
+   bit-identical to the kernels' operands (two independent checks), and vLLM rounds the FP16
+   scales to BF16 on load. Decode speed with a 128-token prompt: BF16 20.8, INT8 41.5, INT4
+   59.9 tokens/s (2048-token prompt: 20.6 / 40.9 / 58.7; spread over executions ≤ 0.5%), i.e.
+   1.99× and 2.87× over vLLM's BF16, at 73% / 83% / 78% of each checkpoint's byte-count ceiling.
+   WikiText-2 perplexity: 12.32 (BF16), 12.35 (INT8, +0.2%), 14.10 (INT4, +14.4%); the INT8
+   greedy continuation is identical to BF16 for all 257 tokens, INT4's departs after 7. A kernel
+   breakdown under Nsight Systems shows the large GEMVs are 96–98% of the GPU time per token and
+   the GPU is busy 98–99% of the wall time; everything else (DeltaNet recurrence, attention, norms,
+   sampling) costs 0.65–0.84 ms per token. The measured GEMV times match the microbenchmark within
+   5% (BF16 47.00 vs 46.87 ms per token predicted; INT4 layers 8.41 vs 8.58 ms). *Readings:* (a) the
+   per-token model of §2.8 is not just an upper bound — at batch 1 and short context it *is* the
+   decode time; (b) vLLM's BF16 decode is held back by cuBLAS's slow `gemvx` (with v2-speed GEMVs
+   the model gives 28.2 tokens/s), so part of the quantized speedups over vLLM's BF16 is a better
+   GEMV, not fewer bytes; (c) the BF16 LM head is 46% of the INT4 checkpoint's GPU time — with it in
+   INT4 too, the projection (not measured) is ≈ 96 tokens/s, at the LM head's INT4 accuracy cost.
+
+## 7. Suggested figures and tables for the report
 
 | Report item | Source |
 | --- | --- |
@@ -186,3 +269,6 @@ up [ANALYSIS.md §4–7].
 | Timing modes / small matrices (figure) | `figures/fig_timing_modes.png`, `ANALYSIS.md` §8–9 |
 | Per-token model (figure) | `figures/fig_per_token.png`, `analysis/per_token.csv` |
 | Correctness evidence | `tests/test_output.txt`, `ANALYSIS.md` §2 |
+| Nsight Compute counters (table) | `ANALYSIS.md` §17, `ncu/summary.md` |
+| Real-activation accuracy (figures, table) | `figures/fig_real_x.png` (benchmarked matrices), `figures/fig_real_x_layers.png` (all layers), `ANALYSIS.md` §18 |
+| End-to-end decode vs GEMV model and ceiling (figure, table) | `figures/fig_e2e.png`, `ANALYSIS.md` §19 |

@@ -1,0 +1,11 @@
+{
+ "label": "int8",
+ "model": "/work/data/ckpt/int8",
+ "git": "071fefa",
+ "vllm": "0.28.0",
+ "prompt_tokens": 128,
+ "decode_tokens": 256,
+ "wall_s": 6.273035142803565,
+ "first_token_s": 0.04853627295233309,
+ "multiprocessing": "0"
+}
